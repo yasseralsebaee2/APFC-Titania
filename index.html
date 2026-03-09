@@ -206,7 +206,7 @@
   </div>
 
   <div id="map"></div>
-  <div class="footer"><div class="footer-text">APFC - Titania | Pile Control Map - Click any Pile for Details</div></div>
+  <div class="footer"><div class="footer-text">APFC - Titania | Pile Control Map | Press any Pile for Details</div></div>
 
   <div id="sidePanel" class="side-panel">
     <div class="side-panel-header">
@@ -596,15 +596,96 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,
       });
     });
 
-    map.on('click',(e)=>{
-      const row = getClickedPileRow(e.point);
-      if(row){
+        let touchStartPoint = null;
+    let touchMoved = false;
+    let touchIsSingleTapCandidate = false;
+    let suppressClickUntil = 0;
+    const TAP_MOVE_TOLERANCE = 10;
+    const TAP_MAX_DURATION = 220;
+    let touchStartTime = 0;
+
+    const canvas = map.getCanvas();
+
+    canvas.addEventListener('touchstart', (ev) => {
+      if (!ev.touches || ev.touches.length !== 1) {
+        touchStartPoint = null;
+        touchMoved = true;
+        touchIsSingleTapCandidate = false;
+        suppressClickUntil = Date.now() + 500;
+        return;
+      }
+
+      const t = ev.touches[0];
+      touchStartPoint = { x: t.clientX, y: t.clientY };
+      touchMoved = false;
+      touchIsSingleTapCandidate = true;
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (ev) => {
+      if (!touchStartPoint || !ev.touches || ev.touches.length !== 1) {
+        touchMoved = true;
+        touchIsSingleTapCandidate = false;
+        return;
+      }
+
+      const t = ev.touches[0];
+      const dx = t.clientX - touchStartPoint.x;
+      const dy = t.clientY - touchStartPoint.y;
+
+      if (Math.hypot(dx, dy) > TAP_MOVE_TOLERANCE) {
+        touchMoved = true;
+        touchIsSingleTapCandidate = false;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', (ev) => {
+      if (!touchStartPoint) {
+        suppressClickUntil = Date.now() + 500;
+        return;
+      }
+
+      const duration = Date.now() - touchStartTime;
+      if (!touchIsSingleTapCandidate || touchMoved || duration > TAP_MAX_DURATION) {
+        touchStartPoint = null;
+        touchIsSingleTapCandidate = false;
+        suppressClickUntil = Date.now() + 500;
+        return;
+      }
+
+      const changedTouch = ev.changedTouches && ev.changedTouches[0];
+      if (!changedTouch) {
+        touchStartPoint = null;
+        touchIsSingleTapCandidate = false;
+        suppressClickUntil = Date.now() + 500;
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const point = {
+        x: changedTouch.clientX - rect.left,
+        y: changedTouch.clientY - rect.top
+      };
+
+      const row = getClickedPileRow(point);
+      if (row) {
         openPilePanelFromRow(row);
       }
+
+      touchStartPoint = null;
+      touchIsSingleTapCandidate = false;
+      suppressClickUntil = Date.now() + 500;
+    }, { passive: true });
+
+    ['dragstart','zoomstart','rotatestart','pitchstart'].forEach(eventName => {
+      map.on(eventName, () => {
+        suppressClickUntil = Date.now() + 500;
+        touchIsSingleTapCandidate = false;
+      });
     });
 
-    map.on('touchend',(e)=>{
-      if(!e.point) return;
+    map.on('click',(e)=>{
+      if (Date.now() < suppressClickUntil) return;
       const row = getClickedPileRow(e.point);
       if(row){
         openPilePanelFromRow(row);
