@@ -569,17 +569,45 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,
     function getClickedPileRow(point){
       const features = getCandidateFeatures(point);
 
-      const prioritized = features.filter(feature => {
-        if(!feature || !feature.properties) return false;
-        return FEATURE_ID_FIELDS.some(field => {
-          const value = feature.properties[field];
-          return value !== undefined && value !== null && value !== '';
-        });
-      });
+      const prioritized = features
+        .filter(feature => {
+          if(!feature || !feature.properties) return false;
+          return FEATURE_ID_FIELDS.some(field => {
+            const value = feature.properties[field];
+            return value !== undefined && value !== null && value !== '';
+          });
+        })
+        .map(feature => {
+          let layerPriority = 3;
+          const layerType = feature.layer && feature.layer.type ? feature.layer.type : '';
 
-      for(const feature of prioritized){
-        const row = findMatchingCsvRowFromFeature(feature);
-        if(row) return row;
+          if (layerType === 'circle') layerPriority = 0;
+          else if (layerType === 'fill') layerPriority = 1;
+          else if (layerType === 'line') layerPriority = 2;
+          else if (layerType === 'symbol') layerPriority = 4;
+
+          let screenDistance = Number.MAX_SAFE_INTEGER;
+          try {
+            if (feature.geometry && feature.geometry.type === 'Point' && Array.isArray(feature.geometry.coordinates)) {
+              const projected = map.project(feature.geometry.coordinates);
+              screenDistance = Math.hypot(projected.x - point.x, projected.y - point.y);
+            }
+          } catch (err) {}
+
+          return {
+            feature,
+            layerPriority,
+            screenDistance
+          };
+        })
+        .sort((a, b) => {
+          if (a.layerPriority !== b.layerPriority) return a.layerPriority - b.layerPriority;
+          return a.screenDistance - b.screenDistance;
+        });
+
+      for (const item of prioritized) {
+        const row = findMatchingCsvRowFromFeature(item.feature);
+        if (row) return row;
       }
 
       return null;
@@ -701,4 +729,3 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,
 
 </body>
 </html>
-
