@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>APFC - Titania</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
 
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.js"></script>
@@ -349,8 +352,8 @@
       right: 14px;
       top: 12px;
       z-index: 3;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(0,0,0,0.32);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
       color: #fff;
       border-radius: 999px;
       padding: 7px 10px;
@@ -431,8 +434,8 @@
     }
 
     .chart-btn {
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(0,0,0,0.32);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
       color: #ffffff;
       border-radius: 999px;
       padding: 7px 10px;
@@ -483,7 +486,7 @@
       width: 100%;
       height: 185px;
       border-radius: 14px;
-      background: rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.03);
       overflow: hidden;
       border: 1px solid rgba(255,255,255,0.18);
     }
@@ -704,7 +707,7 @@
 <body>
 
   <div class="header">
-    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT2mGKTgmV9kgmMADAwTneh7iP9NUkM4FcGgA&s" alt="Binghatti Logo">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT2mGKTgmV9kgmMADAwTneh7iP9NUkM4FcGgA&s&v=2026.03.10.01" alt="Binghatti Logo">
     <div class="header-title">Project: Titania</div>
   </div>
 
@@ -799,6 +802,29 @@
   </div>
 
   <script>
+    const APP_VERSION = '2026.03.10.01';
+
+    (function enforceFreshReload() {
+      try {
+        const url = new URL(window.location.href);
+        const currentV = url.searchParams.get('v');
+
+        if (currentV !== APP_VERSION) {
+          url.searchParams.set('v', APP_VERSION);
+          window.location.replace(url.toString());
+          return;
+        }
+
+        if ('caches' in window) {
+          caches.keys().then(keys => {
+            keys.forEach(key => {
+              if (!key.includes(APP_VERSION)) caches.delete(key);
+            });
+          }).catch(() => {});
+        }
+      } catch (err) {}
+    })();
+
     mapboxgl.accessToken = 'pk.eyJ1IjoieWFzc2VyYWxzZWJhZWUiLCJhIjoiY20zbHdwam12MG9wdzJwczc2aGl0eTRwZCJ9.xZgmTXWHWe73-Ad1jhkmbQ';
 
     proj4.defs(
@@ -1421,7 +1447,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
           <div class="tooltip-row"><span class="tooltip-label">Remaining</span><span>${stats.remaining.toLocaleString()}</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Total piles</span><span>${stats.total.toLocaleString()}</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Completion</span><span>${stats.percent.toFixed(1)}%</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Latest cast</span><span>${stats.latestDate ? formatDateLabel(stats.latestDate) : 'N/A'}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Data Date</span><span>${stats.latestDate ? formatDateLabel(stats.latestDate) : 'N/A'}</span></div>
         `;
         progressTooltip.style.left = `${Math.min(rect.width - 172, Math.max(8, e.clientX - rect.left + 10))}px`;
         progressTooltip.style.top = `${Math.min(rect.height - 120, Math.max(8, e.clientY - rect.top + 10))}px`;
@@ -1535,11 +1561,9 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
           const rect = chartArea.getBoundingClientRect();
 
           chartTooltip.innerHTML = `
-            <div class="tooltip-title">${formatDateLabel(row.date)}</div>
-            <div class="tooltip-row"><span class="tooltip-label">${title}</span><span>${formatMetricValue(metric, row[metric])}</span></div>
-            <div class="tooltip-row"><span class="tooltip-label">Piles cast</span><span>${formatMetricValue('pileCount', row.pileCount)}</span></div>
-            <div class="tooltip-row"><span class="tooltip-label">Drilling depth</span><span>${formatMetricValue('drillingDepth', row.drillingDepth)}</span></div>
-            <div class="tooltip-row"><span class="tooltip-label">Concrete qty.</span><span>${formatMetricValue('concreteQty', row.concreteQty)}</span></div>
+            <div class="tooltip-row"><span class="tooltip-label">Casted Piles</span><span>${formatMetricValue('pileCount', row.pileCount)}</span></div>
+            <div class="tooltip-row"><span class="tooltip-label">Drilled Depth</span><span>${formatMetricValue('drillingDepth', row.drillingDepth)} m</span></div>
+            <div class="tooltip-row"><span class="tooltip-label">Concrete Poured</span><span>${formatMetricValue('concreteQty', row.concreteQty)} m3</span></div>
           `;
 
           chartTooltip.style.left = `${Math.min(rect.width - 172, Math.max(8, point.x - 30))}px`;
