@@ -1561,6 +1561,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
           const rect = chartArea.getBoundingClientRect();
 
           chartTooltip.innerHTML = `
+            <div class="tooltip-title">${formatDateLabel(row.date)}</div>
             <div class="tooltip-row"><span class="tooltip-label">Casted Piles</span><span>${formatMetricValue('pileCount', row.pileCount)}</span></div>
             <div class="tooltip-row"><span class="tooltip-label">Drilled Depth</span><span>${formatMetricValue('drillingDepth', row.drillingDepth)} m</span></div>
             <div class="tooltip-row"><span class="tooltip-label">Concrete Poured</span><span>${formatMetricValue('concreteQty', row.concreteQty)} m3</span></div>
