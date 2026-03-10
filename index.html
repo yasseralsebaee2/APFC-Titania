@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>APFC - Titania</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.js"></script>
@@ -19,7 +19,17 @@
       --text: #272C30;
       --muted: #6b6b6b;
       --line: #ececec;
-      --glass: rgba(255,255,255,0.92);
+
+      --glass-dark: rgba(39, 44, 48, 0.18);
+      --glass-dark-strong: rgba(39, 44, 48, 0.26);
+      --glass-border: rgba(255,255,255,0.12);
+      --glass-highlight: rgba(255,255,255,0.12);
+      --glass-shadow: 0 8px 22px rgba(0,0,0,0.10);
+      --glass-blur: blur(12px);
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     html, body {
@@ -42,7 +52,6 @@
       display: flex;
       align-items: center;
       padding: 0 14px;
-      box-sizing: border-box;
       z-index: 30;
     }
 
@@ -128,7 +137,7 @@
       height: calc(100% - 42px);
       background: var(--panel);
       box-shadow: -8px 0 24px rgba(0,0,0,0.18);
-      z-index: 40;
+      z-index: 70;
       transform: translateX(100%);
       transition: transform 0.25s ease;
       display: flex;
@@ -148,7 +157,6 @@
       justify-content: space-between;
       align-items: center;
       min-height: 56px;
-      box-sizing: border-box;
     }
 
     .side-panel-header h3 {
@@ -212,21 +220,31 @@
 
     .progress-card {
       position: absolute;
-      top: 58px;
+      top: 56px;
       left: 16px;
-      width: 250px;
+      width: 248px;
       z-index: 46;
-      background: rgba(18, 18, 18, 0.38);
+      background: var(--glass-dark);
       color: #ffffff;
       border-radius: 18px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.18);
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--glass-shadow);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
       overflow: hidden;
     }
 
+    .progress-card::before,
+    .chart-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      pointer-events: none;
+    }
+
     .progress-card-header {
+      position: relative;
       padding: 12px 14px 6px 14px;
     }
 
@@ -238,11 +256,12 @@
 
     .progress-card-subtitle {
       font-size: 10px;
-      color: rgba(255,255,255,0.68);
+      color: rgba(255,255,255,0.72);
       margin-top: 2px;
     }
 
     .progress-card-body {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 14px;
@@ -264,7 +283,7 @@
 
     .progress-ring-bg {
       fill: none;
-      stroke: rgba(255,255,255,0.10);
+      stroke: rgba(255,255,255,0.12);
       stroke-width: 8;
     }
 
@@ -296,7 +315,7 @@
 
     .progress-percent-sub {
       font-size: 9px;
-      color: rgba(255,255,255,0.62);
+      color: rgba(255,255,255,0.65);
       margin-top: 3px;
     }
 
@@ -305,6 +324,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      min-width: 0;
     }
 
     .progress-stat {
@@ -315,7 +335,7 @@
 
     .progress-stat-label {
       font-size: 11px;
-      color: rgba(255,255,255,0.66);
+      color: rgba(255,255,255,0.72);
     }
 
     .progress-stat-value {
@@ -324,35 +344,67 @@
       color: #fff;
     }
 
+    .chart-toggle-btn {
+      position: absolute;
+      right: 14px;
+      top: 12px;
+      z-index: 3;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.18s ease;
+    }
+
+    .chart-toggle-btn:hover {
+      background: rgba(255,255,255,0.12);
+    }
+
     .chart-card {
       position: absolute;
       left: 16px;
       bottom: 48px;
-      width: 370px;
+      width: 365px;
       max-width: calc(100vw - 32px);
       z-index: 45;
-      background: rgba(18, 18, 18, 0.42);
+      background: var(--glass-dark);
       color: #ffffff;
       border-radius: 18px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.20);
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--glass-shadow);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      overflow: hidden;
+      transition: transform 0.22s ease, opacity 0.22s ease, max-height 0.22s ease;
+      max-height: 420px;
+    }
+
+    .chart-card.collapsed {
+      max-height: 52px;
       overflow: hidden;
     }
 
     .chart-card-header {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       padding: 12px 14px 8px 14px;
+      min-height: 52px;
     }
 
     .chart-title-wrap {
       display: flex;
       flex-direction: column;
       gap: 2px;
+      padding-right: 84px;
     }
 
     .chart-title {
@@ -364,7 +416,11 @@
 
     .chart-subtitle {
       font-size: 10px;
-      color: rgba(255,255,255,0.68);
+      color: rgba(255,255,255,0.72);
+    }
+
+    .chart-content {
+      position: relative;
     }
 
     .chart-switcher {
@@ -376,7 +432,7 @@
 
     .chart-btn {
       border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.05);
       color: #ffffff;
       border-radius: 999px;
       padding: 7px 10px;
@@ -385,10 +441,11 @@
       cursor: pointer;
       transition: all 0.18s ease;
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     .chart-btn:hover {
-      background: rgba(255,255,255,0.11);
+      background: rgba(255,255,255,0.12);
     }
 
     .chart-btn.active {
@@ -411,7 +468,7 @@
 
     .chart-metric-label {
       font-size: 10px;
-      color: rgba(255,255,255,0.68);
+      color: rgba(255,255,255,0.72);
       margin-bottom: 3px;
     }
 
@@ -426,9 +483,9 @@
       width: 100%;
       height: 185px;
       border-radius: 14px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.025) 100%);
+      background: rgba(255,255,255,0.06);
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.14);
     }
 
     .chart-svg {
@@ -443,7 +500,7 @@
       align-items: center;
       gap: 10px;
       padding-top: 8px;
-      color: rgba(255,255,255,0.78);
+      color: rgba(255,255,255,0.82);
       font-size: 10px;
     }
 
@@ -468,15 +525,16 @@
       opacity: 0;
       transform: translateY(6px);
       transition: opacity 0.14s ease, transform 0.14s ease;
-      background: rgba(12,12,12,0.88);
+      background: rgba(12,12,12,0.68);
       color: #fff;
       border: 1px solid rgba(255,255,255,0.10);
       border-radius: 14px;
       padding: 10px 12px;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       min-width: 160px;
+      z-index: 80;
     }
 
     .chart-tooltip.show,
@@ -497,7 +555,7 @@
       justify-content: space-between;
       gap: 16px;
       font-size: 11px;
-      color: rgba(255,255,255,0.86);
+      color: rgba(255,255,255,0.88);
       margin-bottom: 4px;
     }
 
@@ -511,9 +569,9 @@
 
     @media (max-width: 900px) {
       .chart-card {
-        width: min(370px, calc(100vw - 20px));
+        width: min(350px, calc(100vw - 20px));
         left: 10px;
-        bottom: 44px;
+        bottom: calc(44px + env(safe-area-inset-bottom));
       }
 
       .progress-card {
@@ -524,6 +582,121 @@
 
       .side-panel {
         width: 88vw;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header {
+        height: 40px;
+      }
+
+      #map {
+        top: 40px;
+        height: calc(100% - 40px);
+      }
+
+      .footer {
+        height: 32px;
+      }
+
+      .footer-text {
+        font-size: 11px;
+      }
+
+      .progress-card {
+        top: 48px;
+        left: 10px;
+        width: min(208px, calc(100vw - 20px));
+        border-radius: 16px;
+      }
+
+      .progress-card-header {
+        padding: 10px 12px 5px 12px;
+      }
+
+      .progress-card-body {
+        gap: 10px;
+        padding: 3px 12px 12px 12px;
+      }
+
+      .progress-ring-wrap,
+      .progress-ring-svg {
+        width: 72px;
+        height: 72px;
+        flex-basis: 72px;
+      }
+
+      .progress-percent {
+        font-size: 15px;
+      }
+
+      .progress-stat-label,
+      .progress-stat-value {
+        font-size: 10px;
+      }
+
+      .chart-card {
+        width: calc(100vw - 20px);
+        left: 10px;
+        bottom: calc(40px + env(safe-area-inset-bottom));
+        border-radius: 16px;
+        max-height: min(390px, 58vh);
+      }
+
+      .chart-card.collapsed {
+        max-height: 50px;
+      }
+
+      .chart-card-header {
+        padding: 10px 12px 8px 12px;
+      }
+
+      .chart-title-wrap {
+        padding-right: 76px;
+      }
+
+      .chart-title {
+        font-size: 12px;
+      }
+
+      .chart-subtitle {
+        font-size: 9px;
+      }
+
+      .chart-toggle-btn {
+        top: 10px;
+        right: 10px;
+        padding: 6px 9px;
+        font-size: 10px;
+      }
+
+      .chart-switcher {
+        padding: 0 12px 8px 12px;
+        gap: 5px;
+      }
+
+      .chart-btn {
+        padding: 6px 9px;
+        font-size: 10px;
+      }
+
+      .chart-body {
+        padding: 0 10px 10px 10px;
+      }
+
+      .chart-metric-value {
+        font-size: 15px;
+      }
+
+      .chart-area {
+        height: 160px;
+      }
+
+      .side-panel {
+        top: 40px;
+        width: 100vw;
+        max-width: 100vw;
+        height: calc(100% - 40px);
       }
     }
   </style>
@@ -580,34 +753,37 @@
         <div class="chart-title">Execution Trend</div>
         <div class="chart-subtitle">Daily executed piles from asbuilt records</div>
       </div>
+      <button class="chart-toggle-btn" id="chartToggleBtn" type="button">Hide</button>
     </div>
 
-    <div class="chart-switcher">
-      <button class="chart-btn active" data-metric="pileCount">No Of Piles</button>
-      <button class="chart-btn" data-metric="drillingDepth">Drilling Depth</button>
-      <button class="chart-btn" data-metric="concreteQty">Concrete Quantity</button>
-    </div>
-
-    <div class="chart-body">
-      <div class="chart-metrics">
-        <div>
-          <div class="chart-metric-label">Selected Metric</div>
-          <div class="chart-metric-value" id="chartMetricLabel">No Of Piles</div>
-        </div>
-        <div>
-          <div class="chart-metric-label">Total</div>
-          <div class="chart-metric-value" id="chartMetricTotal">0</div>
-        </div>
+    <div class="chart-content" id="chartContent">
+      <div class="chart-switcher">
+        <button class="chart-btn active" data-metric="pileCount">No Of Piles</button>
+        <button class="chart-btn" data-metric="drillingDepth">Drilling Depth</button>
+        <button class="chart-btn" data-metric="concreteQty">Concrete Quantity</button>
       </div>
 
-      <div class="chart-area" id="chartArea">
-        <svg class="chart-svg" id="chartSvg" viewBox="0 0 400 210" preserveAspectRatio="none"></svg>
-        <div class="chart-tooltip" id="chartTooltip"></div>
-      </div>
+      <div class="chart-body">
+        <div class="chart-metrics">
+          <div>
+            <div class="chart-metric-label">Selected Metric</div>
+            <div class="chart-metric-value" id="chartMetricLabel">No Of Piles</div>
+          </div>
+          <div>
+            <div class="chart-metric-label">Total</div>
+            <div class="chart-metric-value" id="chartMetricTotal">0</div>
+          </div>
+        </div>
 
-      <div class="chart-legend">
-        <span class="chart-pill"><span class="chart-dot"></span><span id="chartLegendText">No Of Piles per Day</span></span>
-        <span id="chartDateRange">No data</span>
+        <div class="chart-area" id="chartArea">
+          <svg class="chart-svg" id="chartSvg" viewBox="0 0 400 210" preserveAspectRatio="none"></svg>
+          <div class="chart-tooltip" id="chartTooltip"></div>
+        </div>
+
+        <div class="chart-legend">
+          <span class="chart-pill"><span class="chart-dot"></span><span id="chartLegendText">No Of Piles per Day</span></span>
+          <span id="chartDateRange">No data</span>
+        </div>
       </div>
     </div>
   </div>
@@ -980,15 +1156,11 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     function toLonLat(x, y) {
       if (!x || !y) return null;
 
-      if (looksLikeLonLat(x, y)) {
-        return [x, y];
-      }
+      if (looksLikeLonLat(x, y)) return [x, y];
 
       try {
         const converted = proj4('EPSG:3997', 'WGS84', [x, y]);
-        if (Array.isArray(converted) && converted.length === 2) {
-          return converted;
-        }
+        if (Array.isArray(converted) && converted.length === 2) return converted;
       } catch (err) {}
 
       return null;
@@ -1018,9 +1190,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     const pileLookup = new Map();
 
     csvRows.forEach(row => {
-      if (row.ID) {
-        pileLookup.set(normalizeId(row.ID), row);
-      }
+      if (row.ID) pileLookup.set(normalizeId(row.ID), row);
     });
 
     const map = new mapboxgl.Map({
@@ -1042,6 +1212,9 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     const panelBody = document.getElementById('panelBody');
     const closePanel = document.getElementById('closePanel');
 
+    const chartCard = document.getElementById('chartCard');
+    const chartContent = document.getElementById('chartContent');
+    const chartToggleBtn = document.getElementById('chartToggleBtn');
     const chartArea = document.getElementById('chartArea');
     const chartSvg = document.getElementById('chartSvg');
     const chartTooltip = document.getElementById('chartTooltip');
@@ -1059,6 +1232,19 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     const progressTotal = document.getElementById('progressTotal');
     const progressTooltip = document.getElementById('progressTooltip');
 
+    let isChartCollapsed = window.innerWidth <= 640;
+
+    function applyChartCollapsedState() {
+      chartCard.classList.toggle('collapsed', isChartCollapsed);
+      chartContent.style.display = isChartCollapsed ? 'none' : 'block';
+      chartToggleBtn.textContent = isChartCollapsed ? 'Show' : 'Hide';
+    }
+
+    chartToggleBtn.addEventListener('click', () => {
+      isChartCollapsed = !isChartCollapsed;
+      applyChartCollapsedState();
+    });
+
     closePanel.addEventListener('click', () => {
       sidePanel.classList.remove('open');
     });
@@ -1069,7 +1255,6 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
       panelBody.innerHTML = `
         <div class="panel-section">
           <div class="panel-section-title">Design</div>
-
           <div class="info-row"><div class="info-label">Pile ID</div><div class="info-value">${row.ID || ''}</div></div>
           <div class="info-row"><div class="info-label">Type</div><div class="info-value">${row.Type || ''}</div></div>
           <div class="info-row"><div class="info-label">Diameter</div><div class="info-value">${row.dia || ''}</div></div>
@@ -1082,7 +1267,6 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
 
         <div class="panel-section">
           <div class="panel-section-title">Asbuilt</div>
-
           <div class="info-row"><div class="info-label">Depth</div><div class="info-value">${row.depth || ''}</div></div>
           <div class="info-row"><div class="info-label">Top Of Casing</div><div class="info-value">${row['Top Of Casing'] || ''}</div></div>
           <div class="info-row"><div class="info-label">Concrete Qty.</div><div class="info-value">${row['Concrete Qty.'] || ''}</div></div>
@@ -1108,9 +1292,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
         if (rawValue === undefined || rawValue === null || rawValue === '') continue;
 
         const normalized = normalizeId(rawValue);
-        if (pileLookup.has(normalized)) {
-          return pileLookup.get(normalized);
-        }
+        if (pileLookup.has(normalized)) return pileLookup.get(normalized);
       }
 
       return null;
@@ -1241,8 +1423,8 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
           <div class="tooltip-row"><span class="tooltip-label">Completion</span><span>${stats.percent.toFixed(1)}%</span></div>
           <div class="tooltip-row"><span class="tooltip-label">Latest cast</span><span>${stats.latestDate ? formatDateLabel(stats.latestDate) : 'N/A'}</span></div>
         `;
-        progressTooltip.style.left = `${Math.min(rect.width - 170, Math.max(8, e.clientX - rect.left + 14))}px`;
-        progressTooltip.style.top = `${Math.min(rect.height - 120, Math.max(8, e.clientY - rect.top + 14))}px`;
+        progressTooltip.style.left = `${Math.min(rect.width - 172, Math.max(8, e.clientX - rect.left + 10))}px`;
+        progressTooltip.style.top = `${Math.min(rect.height - 120, Math.max(8, e.clientY - rect.top + 10))}px`;
         progressTooltip.classList.add('show');
       };
 
@@ -1257,15 +1439,12 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
 
       chartMetricLabel.textContent = title;
       chartLegendText.textContent = `${title} per Day`;
-
       chartButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.metric === metric));
 
       if (!chartData.length) {
         chartMetricTotal.textContent = '0';
         chartDateRange.textContent = 'No data';
-        chartSvg.innerHTML = `
-          <text x="200" y="95" fill="rgba(255,255,255,0.6)" text-anchor="middle" font-size="13">No casting data available</text>
-        `;
+        chartSvg.innerHTML = `<text x="200" y="95" fill="rgba(255,255,255,0.65)" text-anchor="middle" font-size="13">No casting data available</text>`;
         chartTooltip.classList.remove('show');
         return;
       }
@@ -1300,18 +1479,18 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
       for (let i = 0; i <= gridLines; i++) {
         const y = top + (i / gridLines) * plotHeight;
         const value = maxVal - (i / gridLines) * (maxVal - minVal);
-        yGrid.push(`<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="rgba(255,255,255,0.09)" stroke-width="1" />`);
-        yLabels.push(`<text x="${left - 8}" y="${y + 4}" fill="rgba(255,255,255,0.64)" text-anchor="end" font-size="9.5">${formatMetricValue(metric, value)}</text>`);
+        yGrid.push(`<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="rgba(255,255,255,0.12)" stroke-width="1" />`);
+        yLabels.push(`<text x="${left - 8}" y="${y + 4}" fill="rgba(255,255,255,0.66)" text-anchor="end" font-size="9.5">${formatMetricValue(metric, value)}</text>`);
       }
 
       const xStep = chartData.length > 8 ? Math.ceil(chartData.length / 6) : 1;
       const xLabels = points.map((p, i) => {
         if (i % xStep !== 0 && i !== chartData.length - 1) return '';
-        return `<text x="${p.x}" y="${height - 9}" fill="rgba(255,255,255,0.66)" text-anchor="middle" font-size="9.5">${formatDateLabel(p.date)}</text>`;
+        return `<text x="${p.x}" y="${height - 9}" fill="rgba(255,255,255,0.68)" text-anchor="middle" font-size="9.5">${formatDateLabel(p.date)}</text>`;
       }).join('');
 
       const dots = points.map((p, i) => `
-        <circle cx="${p.x}" cy="${p.y}" r="4.3" fill="#E8D611" stroke="rgba(17,17,17,0.95)" stroke-width="1.6" data-index="${i}"></circle>
+        <circle cx="${p.x}" cy="${p.y}" r="4.1" fill="#E8D611" stroke="rgba(17,17,17,0.88)" stroke-width="1.4" data-index="${i}"></circle>
       `).join('');
 
       const hoverZones = points.map((p, i) => `
@@ -1321,11 +1500,11 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
       chartSvg.innerHTML = `
         <defs>
           <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(232,214,17,0.30)" />
-            <stop offset="100%" stop-color="rgba(232,214,17,0.02)" />
+            <stop offset="0%" stop-color="rgba(232,214,17,0.18)" />
+            <stop offset="100%" stop-color="rgba(232,214,17,0.01)" />
           </linearGradient>
           <filter id="lineGlow">
-            <feGaussianBlur stdDeviation="2.4" result="coloredBlur"></feGaussianBlur>
+            <feGaussianBlur stdDeviation="2.2" result="coloredBlur"></feGaussianBlur>
             <feMerge>
               <feMergeNode in="coloredBlur"></feMergeNode>
               <feMergeNode in="SourceGraphic"></feMergeNode>
@@ -1335,8 +1514,8 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
         ${yGrid.join('')}
         ${yLabels.join('')}
         <path d="${areaPath}" fill="url(#chartFill)"></path>
-        <path d="${linePath}" fill="none" stroke="rgba(232,214,17,0.30)" stroke-width="6" filter="url(#lineGlow)" stroke-linejoin="round" stroke-linecap="round"></path>
-        <path d="${linePath}" fill="none" stroke="#E8D611" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"></path>
+        <path d="${linePath}" fill="none" stroke="rgba(232,214,17,0.20)" stroke-width="5" filter="url(#lineGlow)" stroke-linejoin="round" stroke-linecap="round"></path>
+        <path d="${linePath}" fill="none" stroke="#E8D611" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"></path>
         ${dots}
         ${xLabels}
         <g id="chartHoverLayer">${hoverZones}</g>
@@ -1363,8 +1542,8 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
             <div class="tooltip-row"><span class="tooltip-label">Concrete qty.</span><span>${formatMetricValue('concreteQty', row.concreteQty)}</span></div>
           `;
 
-          chartTooltip.style.left = `${Math.min(rect.width - 170, Math.max(8, point.x - 30))}px`;
-          chartTooltip.style.top = `${Math.max(8, point.y - 82)}px`;
+          chartTooltip.style.left = `${Math.min(rect.width - 172, Math.max(8, point.x - 30))}px`;
+          chartTooltip.style.top = `${Math.max(8, point.y - 84)}px`;
           chartTooltip.classList.add('show');
         });
 
@@ -1382,12 +1561,8 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
       const data = buildCastingDateGeoJSON(csvRows);
       if (!data.features.length) return;
 
-      if (map.getLayer(CASTING_DATE_LAYER_ID)) {
-        map.removeLayer(CASTING_DATE_LAYER_ID);
-      }
-      if (map.getSource(CASTING_DATE_LAYER_ID)) {
-        map.removeSource(CASTING_DATE_LAYER_ID);
-      }
+      if (map.getLayer(CASTING_DATE_LAYER_ID)) map.removeLayer(CASTING_DATE_LAYER_ID);
+      if (map.getSource(CASTING_DATE_LAYER_ID)) map.removeSource(CASTING_DATE_LAYER_ID);
 
       map.addSource(CASTING_DATE_LAYER_ID, {
         type: 'geojson',
@@ -1414,11 +1589,22 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
         },
         paint: {
           'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0,0,0,0.88)',
+          'text-halo-color': 'rgba(0,0,0,0.82)',
           'text-halo-width': 1.8,
-          'text-halo-blur': 0.35
+          'text-halo-blur': 0.3
         }
       });
+    }
+
+    function handleResponsiveState() {
+      if (window.innerWidth <= 640) {
+        if (!chartCard.classList.contains('collapsed') && chartToggleBtn.dataset.userExpanded !== 'true') {
+          isChartCollapsed = true;
+        }
+      } else if (chartToggleBtn.dataset.userExpanded !== 'false') {
+        isChartCollapsed = false;
+      }
+      applyChartCollapsedState();
     }
 
     map.on('load', () => {
@@ -1434,6 +1620,13 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
       addCastingDateLabels();
       renderChart(currentMetric);
       renderProgressCard();
+      handleResponsiveState();
+    });
+
+    window.addEventListener('resize', handleResponsiveState);
+
+    chartToggleBtn.addEventListener('click', () => {
+      chartToggleBtn.dataset.userExpanded = isChartCollapsed ? 'false' : 'true';
     });
 
     let touchStartPoint = null;
@@ -1508,9 +1701,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
       };
 
       const row = getClickedPileRow(point);
-      if (row) {
-        openPilePanelFromRow(row);
-      }
+      if (row) openPilePanelFromRow(row);
 
       touchStartPoint = null;
       touchIsSingleTapCandidate = false;
@@ -1527,9 +1718,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     map.on('click', (e) => {
       if (Date.now() < suppressClickUntil) return;
       const row = getClickedPileRow(e.point);
-      if (row) {
-        openPilePanelFromRow(row);
-      }
+      if (row) openPilePanelFromRow(row);
     });
 
     map.on('mousemove', (e) => {
