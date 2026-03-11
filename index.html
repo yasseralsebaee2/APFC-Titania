@@ -1490,7 +1490,9 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
       const title = metricTitle(metric);
       const series = getChartSeries(currentChartMode);
       chartMetricLabel.textContent = title;
-      chartLegendText.textContent = `${title} per Day`;
+      chartLegendText.textContent = currentChartMode === 'cumulative'
+        ? `${title} cumulative`
+        : `${title} per Day`;
       chartButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.metric === metric));
       chartModeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === currentChartMode));
       if (!series.length) {
@@ -1501,7 +1503,9 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
         return;
       }
       const values = series.map(d => Number(d[metric] || 0));
-      const total = values.reduce((a, b) => a + b, 0);
+      const total = currentChartMode === 'cumulative'
+        ? (values.length ? values[values.length - 1] : 0)
+        : values.reduce((a, b) => a + b, 0);
       const maxVal = Math.max(...values, 1);
       const minVal = 0;
       const left = 42, right = 14, top = 16, bottom = 28, width = 400, height = 210;
@@ -1917,6 +1921,3 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
   </script>
 </body>
 </html>
-
-
-
