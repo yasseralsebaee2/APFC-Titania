@@ -133,92 +133,131 @@
 
     .side-panel {
       position: absolute;
-      top: 42px;
-      right: 0;
-      width: 380px;
-      max-width: 92vw;
-      height: calc(100% - 42px);
-      background: var(--panel);
-      box-shadow: -8px 0 24px rgba(0,0,0,0.18);
+      top: 50px;
+      right: 10px;
+      width: 320px;
+      max-width: min(92vw, 320px);
+      max-height: calc(100% - 96px);
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.18);
+      border: 1px solid rgba(39,44,48,0.08);
       z-index: 70;
-      transform: translateX(100%);
-      transition: transform 0.25s ease;
+      transform: translateX(calc(100% + 14px));
+      transition: transform 0.22s ease, opacity 0.22s ease;
       display: flex;
       flex-direction: column;
-      backdrop-filter: blur(6px);
+      border-radius: 20px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow: hidden;
+      opacity: 0;
     }
 
     .side-panel.open {
       transform: translateX(0);
+      opacity: 1;
     }
 
     .side-panel-header {
-      background: var(--dark);
+      background: linear-gradient(180deg, rgba(39,44,48,0.98) 0%, rgba(39,44,48,0.92) 100%);
       color: #fff;
-      padding: 16px 18px;
+      padding: 14px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      min-height: 56px;
+      min-height: 54px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
     .side-panel-header h3 {
       margin: 0;
-      font-size: 18px;
+      font-size: 15px;
+      font-weight: 700;
       color: #ffffff;
+      letter-spacing: 0.2px;
     }
 
     .side-panel-close {
-      border: 0;
-      background: transparent;
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
       color: #fff;
-      font-size: 24px;
+      border-radius: 999px;
+      font-size: 18px;
       cursor: pointer;
       line-height: 1;
       padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+
+    .side-panel-close:hover {
+      background: rgba(255,255,255,0.16);
+      transform: scale(1.04);
     }
 
     .side-panel-body {
-      padding: 18px;
+      padding: 12px;
       overflow-y: auto;
-      font-size: 14px;
+      font-size: 13px;
       color: #222;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,249,251,0.94) 100%);
     }
 
     .panel-section {
-      margin-bottom: 18px;
+      margin-bottom: 12px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(39,44,48,0.06);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
     }
 
     .panel-section-title {
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 10px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
       color: var(--dark);
-      background: #f3f4f6;
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      border-left: 4px solid var(--dark);
+      background: rgba(39,44,48,0.06);
+      padding: 9px 12px;
+      margin-bottom: 0;
+      border-left: 0;
+      border-bottom: 1px solid rgba(39,44,48,0.06);
     }
 
     .info-row {
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 104px 1fr;
+      gap: 10px;
+      align-items: start;
+      margin: 0;
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(39,44,48,0.06);
+    }
+
+    .info-row:last-child {
+      border-bottom: 0;
     }
 
     .info-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 4px;
+      font-size: 11px;
+      color: #7a8087;
+      margin-bottom: 0;
+      font-weight: 600;
+      line-height: 1.35;
     }
 
     .info-value {
-      font-size: 15px;
-      font-weight: 600;
+      font-size: 12.5px;
+      font-weight: 700;
       color: var(--text);
       word-break: break-word;
+      line-height: 1.35;
+      text-align: right;
     }
 
     .progress-card {
@@ -345,6 +384,48 @@
       font-size: 12px;
       font-weight: 700;
       color: #fff;
+    }
+
+    .view-switcher {
+      position: absolute;
+      right: 16px;
+      top: 45%;
+      transform: translateY(-50%);
+      z-index: 47;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 6px;
+      background: var(--glass-dark);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+    }
+
+    .view-btn {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .view-btn:hover {
+      background: rgba(255,255,255,0.12);
+    }
+
+    .view-btn.active {
+      background: var(--gold);
+      color: #000000;
+      border-color: var(--gold);
     }
 
     .chart-toggle-btn {
@@ -571,6 +652,11 @@
     }
 
     @media (max-width: 900px) {
+      .view-switcher {
+        right: 10px;
+        top: 52px;
+      }
+
       .chart-card {
         width: min(350px, calc(100vw - 20px));
         left: 10px;
@@ -589,6 +675,19 @@
     }
 
     @media (max-width: 640px) {
+      .view-switcher {
+        top: auto;
+        right: 10px;
+        bottom: calc(92px + env(safe-area-inset-bottom));
+        padding: 5px;
+        gap: 6px;
+      }
+
+      .view-btn {
+        padding: 7px 10px;
+        font-size: 10px;
+      }
+
       .header {
         height: 40px;
       }
@@ -696,11 +795,38 @@
       }
 
       .side-panel {
-        top: 40px;
-        width: 100vw;
-        max-width: 100vw;
-        height: calc(100% - 40px);
+        top: 46px;
+        right: 8px;
+        left: 8px;
+        width: auto;
+        max-width: none;
+        max-height: calc(100% - 92px);
+        border-radius: 18px;
+        transform: translateY(calc(100% + 16px));
       }
+
+      .side-panel.open {
+        transform: translateY(0);
+      }
+
+      .side-panel-body {
+        padding: 10px;
+      }
+
+      .info-row {
+        grid-template-columns: 92px 1fr;
+        gap: 8px;
+        padding: 8px 10px;
+      }
+
+      .info-label {
+        font-size: 10.5px;
+      }
+
+      .info-value {
+        font-size: 12px;
+      }
+    }
     }
   </style>
 </head>
@@ -712,6 +838,11 @@
   </div>
 
   <div id="map"></div>
+
+  <div class="view-switcher" id="viewSwitcher">
+    <button class="view-btn active" id="planViewBtn" type="button">2D</button>
+    <button class="view-btn" id="view3DBtn" type="button">3D</button>
+  </div>
 
   <div class="progress-card" id="progressCard">
     <div class="progress-card-header">
@@ -1250,6 +1381,9 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     const chartDateRange = document.getElementById('chartDateRange');
     const chartButtons = Array.from(document.querySelectorAll('.chart-btn'));
 
+    const planViewBtn = document.getElementById('planViewBtn');
+    const view3DBtn = document.getElementById('view3DBtn');
+
     const progressCard = document.getElementById('progressCard');
     const progressRingValue = document.getElementById('progressRingValue');
     const progressPercent = document.getElementById('progressPercent');
@@ -1276,7 +1410,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     });
 
     function openPilePanelFromRow(row) {
-      panelTitle.textContent = row.ID || 'Pile Info';
+      panelTitle.textContent = `${row.ID || 'Pile'} • ${row.Type || 'Details'}`;
 
       panelBody.innerHTML = `
         <div class="panel-section">
@@ -1424,6 +1558,36 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
 
     const chartData = aggregateDailyData(csvRows);
     let currentMetric = 'pileCount';
+
+    function setMapView(mode, options = {}) {
+      const is3D = mode === '3d';
+
+      planViewBtn.classList.toggle('active', !is3D);
+      view3DBtn.classList.toggle('active', is3D);
+
+      if (is3D) {
+        map.easeTo({
+          center: [55.314915, 25.085616],
+          zoom: 19,
+          pitch: 66.5,
+          bearing: 17.29,
+          duration: options.instant ? 0 : 900,
+          essential: true
+        });
+      } else {
+        map.easeTo({
+          center: [55.314915, 25.085616],
+          zoom: 19,
+          pitch: 0,
+          bearing: 0,
+          duration: options.instant ? 0 : 900,
+          essential: true
+        });
+      }
+    }
+
+    planViewBtn.addEventListener('click', () => setMapView('2d'));
+    view3DBtn.addEventListener('click', () => setMapView('3d'));
 
     function renderProgressCard() {
       const stats = getProgressStats(csvRows);
@@ -1633,14 +1797,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,,,,
     }
 
     map.on('load', () => {
-      map.easeTo({
-        center: [55.314915, 25.085616],
-        zoom: 19,
-        pitch: 66.5,
-        bearing: 17.29,
-        duration: 2500,
-        essential: true
-      });
+      setMapView('2d', { instant: false });
 
       addCastingDateLabels();
       renderChart(currentMetric);
