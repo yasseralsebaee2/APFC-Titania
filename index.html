@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>APFC - Titania</title>
+  <title>APFC - Titania | True 3D Piles + Overlays</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -11,30 +11,21 @@
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.19.1/mapbox-gl.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
   <style>
     :root {
-      --black: #000000;
-      --panel: rgba(255,255,255,0.98);
       --dark: #272C30;
       --gold: #E8D611;
       --green: #50C878;
       --text: #272C30;
-      --muted: #6b6b6b;
-      --line: #ececec;
-
-      --glass-dark: rgba(39, 44, 48, 0.35);
-      --glass-dark-strong: rgba(39, 44, 48, 0.48);
+      --glass-dark: rgba(39, 44, 48, 0.34);
       --glass-border: rgba(255,255,255,0.12);
-      --glass-highlight: rgba(255,255,255,0.12);
-      --glass-shadow: 0 8px 22px rgba(0,0,0,0.10);
+      --glass-shadow: 0 10px 26px rgba(0,0,0,0.14);
       --glass-blur: blur(12px);
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       padding: 0;
@@ -42,7 +33,7 @@
       height: 100%;
       overflow: hidden;
       font-family: Arial, sans-serif;
-      background: #ffffff;
+      background: #fff;
     }
 
     .header {
@@ -57,16 +48,14 @@
       padding: 0 14px;
       z-index: 30;
     }
-
     .header img {
       height: 24px;
       width: auto;
       object-fit: contain;
       margin-right: 12px;
     }
-
     .header-title {
-      color: white;
+      color: #fff;
       font-size: 14px;
       font-weight: 500;
       letter-spacing: 0.3px;
@@ -86,7 +75,7 @@
       align-items: center;
       padding-left: 14px;
       font-size: 12px;
-      color: #ffffff;
+      color: #fff;
       font-weight: 500;
       position: absolute;
       left: 0;
@@ -97,13 +86,12 @@
       z-index: 50;
       pointer-events: none;
     }
-
     .footer-text {
       position: absolute;
       left: 14px;
       font-size: 12px;
       letter-spacing: 0.3px;
-      color: #ffffff;
+      color: #fff;
     }
 
     .mapboxgl-ctrl-bottom-left,
@@ -111,7 +99,6 @@
       bottom: 4px !important;
       z-index: 60 !important;
     }
-
     .mapboxgl-ctrl-attrib {
       background: transparent !important;
       color: #fff !important;
@@ -119,17 +106,401 @@
       padding: 0 6px !important;
       box-shadow: none !important;
     }
-
-    .mapboxgl-ctrl-attrib a {
-      color: #fff !important;
-    }
-
+    .mapboxgl-ctrl-attrib a { color: #fff !important; }
     .mapboxgl-ctrl-scale {
       background: transparent !important;
       color: #fff !important;
       border: 1px solid #fff !important;
       box-shadow: none !important;
     }
+
+    .glass-card {
+      background: var(--glass-dark);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .progress-card {
+      position: absolute;
+      top: 56px;
+      left: 16px;
+      width: 250px;
+      z-index: 46;
+    }
+    .progress-card-header {
+      padding: 12px 14px 6px 14px;
+    }
+    .progress-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .progress-card-subtitle {
+      font-size: 10px;
+      color: rgba(255,255,255,0.74);
+      margin-top: 2px;
+    }
+    .progress-card-body {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 4px 14px 14px 14px;
+    }
+    .progress-ring-wrap {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      flex: 0 0 84px;
+    }
+    .progress-ring-svg {
+      width: 84px;
+      height: 84px;
+      transform: rotate(-90deg);
+    }
+    .progress-ring-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.12);
+      stroke-width: 8;
+    }
+    .progress-ring-value {
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.4s ease;
+      filter: drop-shadow(0 0 8px rgba(232,214,17,0.22));
+    }
+    .progress-ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      pointer-events: none;
+    }
+    .progress-percent {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+    .progress-percent-sub {
+      font-size: 9px;
+      color: rgba(255,255,255,0.65);
+      margin-top: 3px;
+    }
+    .progress-stats {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .progress-stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .progress-stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.72);
+    }
+    .progress-stat-value {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .view-switcher {
+      position: absolute;
+      right: 16px;
+      top: 45%;
+      transform: translateY(-50%);
+      z-index: 47;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 6px;
+    }
+    .view-btn {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .view-btn:hover { background: rgba(255,255,255,0.12); }
+    .view-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #000;
+    }
+
+    .visibility-card {
+      position: absolute;
+      right: 16px;
+      top: 56px;
+      width: 220px;
+      z-index: 46;
+    }
+    .visibility-header {
+      padding: 12px 14px 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .visibility-body {
+      padding: 0 14px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .visibility-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .visibility-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.82);
+    }
+    .visibility-value {
+      font-size: 11px;
+      color: rgba(255,255,255,0.62);
+    }
+    .visibility-slider {
+      width: 100%;
+      accent-color: var(--gold);
+    }
+    .legend-card {
+      position: absolute;
+      right: 16px;
+      bottom: 48px;
+      width: 265px;
+      z-index: 46;
+    }
+    .legend-header {
+      padding: 12px 14px 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .legend-body {
+      padding: 0 14px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .legend-row {
+      display: grid;
+      grid-template-columns: 16px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.92);
+    }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .legend-meta {
+      color: rgba(255,255,255,0.66);
+      font-size: 10px;
+    }
+
+    .chart-card {
+      position: absolute;
+      left: 16px;
+      bottom: 48px;
+      width: 365px;
+      max-width: calc(100vw - 32px);
+      z-index: 45;
+      transition: max-height 0.22s ease;
+      max-height: 420px;
+    }
+    .chart-card.collapsed {
+      max-height: 50px;
+      overflow: hidden;
+    }
+    .chart-card-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px 8px 14px;
+      min-height: 50px;
+    }
+    .chart-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-right: 76px;
+    }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .chart-subtitle {
+      font-size: 10px;
+      color: rgba(255,255,255,0.72);
+    }
+    .chart-toggle-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      z-index: 3;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .chart-content { position: relative; }
+    .chart-mode-switcher {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 0 14px 10px 14px;
+    }
+    .chart-switcher {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 0 14px 10px 14px;
+    }
+    .chart-mode-btn,
+    .chart-btn {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .chart-mode-btn.active,
+    .chart-btn.active {
+      background: var(--gold);
+      color: #000000;
+      border-color: var(--gold);
+    }
+    .chart-body { padding: 0 12px 12px 12px; }
+    .chart-metrics {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px 8px 2px;
+      gap: 12px;
+    }
+    .chart-metric-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.72);
+      margin-bottom: 3px;
+    }
+    .chart-metric-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .chart-area {
+      position: relative;
+      width: 100%;
+      height: 185px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .chart-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .chart-legend {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding-top: 8px;
+      color: rgba(255,255,255,0.82);
+      font-size: 10px;
+    }
+    .chart-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chart-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: inline-block;
+    }
+
+    .progress-tooltip,
+    .chart-tooltip {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.14s ease, transform 0.14s ease;
+      background: rgba(12,12,12,0.78);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      min-width: 160px;
+      z-index: 80;
+    }
+    .progress-tooltip.show,
+    .chart-tooltip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .tooltip-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.88);
+      margin-bottom: 4px;
+    }
+    .tooltip-row:last-child { margin-bottom: 0; }
+    .tooltip-label { color: rgba(255,255,255,0.62); }
 
     .side-panel {
       position: absolute;
@@ -152,12 +523,10 @@
       overflow: hidden;
       opacity: 0;
     }
-
     .side-panel.open {
       transform: translateX(0);
       opacity: 1;
     }
-
     .side-panel-header {
       background: linear-gradient(180deg, rgba(39,44,48,0.98) 0%, rgba(39,44,48,0.92) 100%);
       color: #fff;
@@ -168,15 +537,12 @@
       min-height: 54px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-
     .side-panel-header h3 {
       margin: 0;
       font-size: 15px;
       font-weight: 700;
-      color: #ffffff;
       letter-spacing: 0.2px;
     }
-
     .side-panel-close {
       width: 30px;
       height: 30px;
@@ -186,19 +552,10 @@
       border-radius: 999px;
       font-size: 18px;
       cursor: pointer;
-      line-height: 1;
-      padding: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.18s ease, transform 0.18s ease;
     }
-
-    .side-panel-close:hover {
-      background: rgba(255,255,255,0.16);
-      transform: scale(1.04);
-    }
-
     .side-panel-body {
       padding: 12px;
       overflow-y: auto;
@@ -206,7 +563,6 @@
       color: #222;
       background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,249,251,0.94) 100%);
     }
-
     .panel-section {
       margin-bottom: 12px;
       background: rgba(255,255,255,0.72);
@@ -215,7 +571,6 @@
       overflow: hidden;
       box-shadow: 0 4px 14px rgba(0,0,0,0.04);
     }
-
     .panel-section-title {
       font-size: 10px;
       font-weight: 800;
@@ -224,576 +579,59 @@
       color: var(--dark);
       background: rgba(39,44,48,0.06);
       padding: 9px 12px;
-      margin-bottom: 0;
-      border-left: 0;
       border-bottom: 1px solid rgba(39,44,48,0.06);
     }
-
     .info-row {
       display: grid;
-      grid-template-columns: 104px 1fr;
+      grid-template-columns: 112px 1fr;
       gap: 10px;
       align-items: start;
-      margin: 0;
       padding: 9px 12px;
       border-bottom: 1px solid rgba(39,44,48,0.06);
     }
-
-    .info-row:last-child {
-      border-bottom: 0;
-    }
-
+    .info-row:last-child { border-bottom: 0; }
     .info-label {
       font-size: 11px;
       color: #7a8087;
-      margin-bottom: 0;
       font-weight: 600;
       line-height: 1.35;
     }
-
     .info-value {
       font-size: 12.5px;
       font-weight: 700;
       color: var(--text);
-      word-break: break-word;
       line-height: 1.35;
       text-align: right;
-    }
-
-    .progress-card {
-      position: absolute;
-      top: 56px;
-      left: 16px;
-      width: 248px;
-      z-index: 46;
-      background: var(--glass-dark);
-      color: #ffffff;
-      border-radius: 18px;
-      box-shadow: var(--glass-shadow);
-      border: 1px solid var(--glass-border);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      overflow: hidden;
-    }
-
-    .progress-card::before,
-    .chart-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
-      pointer-events: none;
-    }
-
-    .progress-card-header {
-      position: relative;
-      padding: 12px 14px 6px 14px;
-    }
-
-    .progress-card-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .progress-card-subtitle {
-      font-size: 10px;
-      color: rgba(255,255,255,0.72);
-      margin-top: 2px;
-    }
-
-    .progress-card-body {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 4px 14px 14px 14px;
-    }
-
-    .progress-ring-wrap {
-      position: relative;
-      width: 84px;
-      height: 84px;
-      flex: 0 0 84px;
-    }
-
-    .progress-ring-svg {
-      width: 84px;
-      height: 84px;
-      transform: rotate(-90deg);
-    }
-
-    .progress-ring-bg {
-      fill: none;
-      stroke: rgba(255,255,255,0.12);
-      stroke-width: 8;
-    }
-
-    .progress-ring-value {
-      fill: none;
-      stroke: var(--gold);
-      stroke-width: 8;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.4s ease;
-      filter: drop-shadow(0 0 8px rgba(232,214,17,0.22));
-    }
-
-    .progress-ring-center {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      pointer-events: none;
-    }
-
-    .progress-percent {
-      font-size: 17px;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1;
-    }
-
-    .progress-percent-sub {
-      font-size: 9px;
-      color: rgba(255,255,255,0.65);
-      margin-top: 3px;
-    }
-
-    .progress-stats {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .progress-stat {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .progress-stat-label {
-      font-size: 11px;
-      color: rgba(255,255,255,0.72);
-    }
-
-    .progress-stat-value {
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .view-switcher {
-      position: absolute;
-      right: 16px;
-      top: 45%;
-      transform: translateY(-50%);
-      z-index: 47;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 6px;
-      background: var(--glass-dark);
-      border: 1px solid var(--glass-border);
-      border-radius: 14px;
-      box-shadow: var(--glass-shadow);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-    }
-
-    .view-btn {
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      color: #ffffff;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.18s ease;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    .view-btn:hover {
-      background: rgba(255,255,255,0.12);
-    }
-
-    .view-btn.active {
-      background: var(--gold);
-      color: #000000;
-      border-color: var(--gold);
-    }
-
-    .chart-toggle-btn {
-      position: absolute;
-      right: 14px;
-      top: 12px;
-      z-index: 3;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      color: #fff;
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      transition: all 0.18s ease;
-    }
-
-    .chart-toggle-btn:hover {
-      background: rgba(255,255,255,0.12);
-    }
-
-    .chart-card {
-      position: absolute;
-      left: 16px;
-      bottom: 48px;
-      width: 365px;
-      max-width: calc(100vw - 32px);
-      z-index: 45;
-      background: var(--glass-dark);
-      color: #ffffff;
-      border-radius: 18px;
-      box-shadow: var(--glass-shadow);
-      border: 1px solid var(--glass-border);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      overflow: hidden;
-      transition: transform 0.22s ease, opacity 0.22s ease, max-height 0.22s ease;
-      max-height: 420px;
-    }
-
-    .chart-card.collapsed {
-      max-height: 52px;
-      overflow: hidden;
-    }
-
-    .chart-card-header {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px 8px 14px;
-      min-height: 52px;
-    }
-
-    .chart-title-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-right: 84px;
-    }
-
-    .chart-title {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      color: #ffffff;
-    }
-
-    .chart-subtitle {
-      font-size: 10px;
-      color: rgba(255,255,255,0.72);
-    }
-
-    .chart-content {
-      position: relative;
-    }
-
-    .chart-switcher {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      padding: 0 14px 10px 14px;
-    }
-
-    .chart-btn {
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.08);
-      color: #ffffff;
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.18s ease;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    .chart-btn:hover {
-      background: rgba(255,255,255,0.12);
-    }
-
-    .chart-btn.active {
-      background: var(--gold);
-      color: #000000;
-      border-color: var(--gold);
-    }
-
-    .chart-body {
-      padding: 0 12px 12px 12px;
-    }
-
-    .chart-metrics {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 2px 8px 2px;
-      gap: 12px;
-    }
-
-    .chart-metric-label {
-      font-size: 10px;
-      color: rgba(255,255,255,0.72);
-      margin-bottom: 3px;
-    }
-
-    .chart-metric-value {
-      font-size: 16px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .chart-area {
-      position: relative;
-      width: 100%;
-      height: 185px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.03);
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.18);
-    }
-
-    .chart-svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .chart-legend {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding-top: 8px;
-      color: rgba(255,255,255,0.82);
-      font-size: 10px;
-    }
-
-    .chart-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .chart-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--gold);
-      display: inline-block;
-    }
-
-    .chart-tooltip,
-    .progress-tooltip {
-      position: absolute;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.14s ease, transform 0.14s ease;
-      background: rgba(12,12,12,0.68);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 14px;
-      padding: 10px 12px;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      min-width: 160px;
-      z-index: 80;
-    }
-
-    .chart-tooltip.show,
-    .progress-tooltip.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .tooltip-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-
-    .tooltip-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      font-size: 11px;
-      color: rgba(255,255,255,0.88);
-      margin-bottom: 4px;
-    }
-
-    .tooltip-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .tooltip-label {
-      color: rgba(255,255,255,0.62);
-    }
-
-    @media (max-width: 900px) {
-      .view-switcher {
-        right: 10px;
-        top: 52px;
-      }
-
-      .chart-card {
-        width: min(350px, calc(100vw - 20px));
-        left: 10px;
-        bottom: calc(44px + env(safe-area-inset-bottom));
-      }
-
-      .progress-card {
-        width: 220px;
-        left: 10px;
-        top: 52px;
-      }
-
-      .side-panel {
-        width: 88vw;
-      }
+      word-break: break-word;
     }
 
     @media (max-width: 640px) {
-      .view-switcher {
-        top: auto;
-        right: 10px;
-        bottom: calc(92px + env(safe-area-inset-bottom));
-        padding: 5px;
-        gap: 6px;
-      }
-
-      .view-btn {
-        padding: 7px 10px;
-        font-size: 10px;
-      }
-
-      .header {
-        height: 40px;
-      }
-
-      #map {
-        top: 40px;
-        height: calc(100% - 40px);
-      }
-
-      .footer {
-        height: 32px;
-      }
-
-      .footer-text {
-        font-size: 11px;
-      }
-
+      .header { height: 40px; }
+      #map { top: 40px; height: calc(100% - 40px); }
+      .footer { height: 32px; }
+      .footer-text { font-size: 11px; }
       .progress-card {
         top: 48px;
         left: 10px;
-        width: min(208px, calc(100vw - 20px));
-        border-radius: 16px;
+        width: min(230px, calc(100vw - 20px));
       }
-
-      .progress-card-header {
-        padding: 10px 12px 5px 12px;
-      }
-
-      .progress-card-body {
-        gap: 10px;
-        padding: 3px 12px 12px 12px;
-      }
-
-      .progress-ring-wrap,
-      .progress-ring-svg {
-        width: 72px;
-        height: 72px;
-        flex-basis: 72px;
-      }
-
-      .progress-percent {
-        font-size: 15px;
-      }
-
-      .progress-stat-label,
-      .progress-stat-value {
-        font-size: 10px;
-      }
-
       .chart-card {
         width: calc(100vw - 20px);
         left: 10px;
         bottom: calc(40px + env(safe-area-inset-bottom));
-        border-radius: 16px;
-        max-height: min(390px, 58vh);
       }
-
-      .chart-card.collapsed {
-        max-height: 50px;
-      }
-
-      .chart-card-header {
-        padding: 10px 12px 8px 12px;
-      }
-
-      .chart-title-wrap {
-        padding-right: 76px;
-      }
-
-      .chart-title {
-        font-size: 12px;
-      }
-
-      .chart-subtitle {
-        font-size: 9px;
-      }
-
-      .chart-toggle-btn {
-        top: 10px;
+      .legend-card {
         right: 10px;
-        padding: 6px 9px;
-        font-size: 10px;
+        left: auto;
+        bottom: calc(40px + env(safe-area-inset-bottom));
+        width: min(240px, calc(100vw - 20px));
       }
-
-      .chart-switcher {
-        padding: 0 12px 8px 12px;
-        gap: 5px;
+      .view-switcher {
+        top: auto;
+        right: 10px;
+        bottom: calc(92px + env(safe-area-inset-bottom));
+        transform: none;
       }
-
-      .chart-btn {
-        padding: 6px 9px;
-        font-size: 10px;
-      }
-
-      .chart-body {
-        padding: 0 10px 10px 10px;
-      }
-
-      .chart-metric-value {
-        font-size: 15px;
-      }
-
-      .chart-area {
-        height: 160px;
-      }
-
       .side-panel {
         top: 46px;
         right: 8px;
@@ -804,52 +642,23 @@
         border-radius: 18px;
         transform: translateY(calc(100% + 16px));
       }
-
-      .side-panel.open {
-        transform: translateY(0);
-      }
-
-      .side-panel-body {
-        padding: 10px;
-      }
-
-      .info-row {
-        grid-template-columns: 92px 1fr;
-        gap: 8px;
-        padding: 8px 10px;
-      }
-
-      .info-label {
-        font-size: 10.5px;
-      }
-
-      .info-value {
-        font-size: 12px;
-      }
-    }
+      .side-panel.open { transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-
   <div class="header">
     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT2mGKTgmV9kgmMADAwTneh7iP9NUkM4FcGgA&s&v=2026.03.10.01" alt="Binghatti Logo">
-    <div class="header-title">Project: Titania</div>
+    <div class="header-title">Project: Titania | True 3D Piles</div>
   </div>
 
   <div id="map"></div>
 
-  <div class="view-switcher" id="viewSwitcher">
-    <button class="view-btn active" id="planViewBtn" type="button">2D</button>
-    <button class="view-btn" id="view3DBtn" type="button">3D</button>
-  </div>
-
-  <div class="progress-card" id="progressCard">
+  <div class="progress-card glass-card" id="progressCard">
     <div class="progress-card-header">
       <div class="progress-card-title">Overall Progress</div>
       <div class="progress-card-subtitle">Executed piles vs total piles</div>
     </div>
-
     <div class="progress-card-body">
       <div class="progress-ring-wrap">
         <svg class="progress-ring-svg" viewBox="0 0 100 100">
@@ -861,27 +670,53 @@
           <div class="progress-percent-sub">Complete</div>
         </div>
       </div>
-
       <div class="progress-stats">
-        <div class="progress-stat">
-          <span class="progress-stat-label">Executed</span>
-          <span class="progress-stat-value" id="progressExecuted">0</span>
-        </div>
-        <div class="progress-stat">
-          <span class="progress-stat-label">Remaining</span>
-          <span class="progress-stat-value" id="progressRemaining">0</span>
-        </div>
-        <div class="progress-stat">
-          <span class="progress-stat-label">Total</span>
-          <span class="progress-stat-value" id="progressTotal">0</span>
-        </div>
+        <div class="progress-stat"><span class="progress-stat-label">Executed</span><span class="progress-stat-value" id="progressExecuted">0</span></div>
+        <div class="progress-stat"><span class="progress-stat-label">Remaining</span><span class="progress-stat-value" id="progressRemaining">0</span></div>
+        <div class="progress-stat"><span class="progress-stat-label">Total</span><span class="progress-stat-value" id="progressTotal">0</span></div>
       </div>
     </div>
-
     <div class="progress-tooltip" id="progressTooltip"></div>
   </div>
 
-  <div class="chart-card" id="chartCard">
+  <div class="view-switcher glass-card">
+    <button class="view-btn" id="planViewBtn" type="button">2D</button>
+    <button class="view-btn active" id="view3DBtn" type="button">3D</button>
+  </div>
+
+  <div class="visibility-card glass-card">
+    <div class="visibility-header">3D Visibility</div>
+    <div class="visibility-body">
+      <div class="visibility-row"><span class="visibility-label">Pending opacity</span><span class="visibility-value" id="pendingOpacityValue">0.18</span></div>
+      <input class="visibility-slider" id="pendingOpacitySlider" type="range" min="0.05" max="0.45" step="0.01" value="0.18">
+      <div class="visibility-row"><span class="visibility-label">Executed opacity</span><span class="visibility-value" id="executedOpacityValue">0.42</span></div>
+      <input class="visibility-slider" id="executedOpacitySlider" type="range" min="0.15" max="0.75" step="0.01" value="0.42">
+      
+    </div>
+  </div>
+
+  <div class="legend-card glass-card">
+    <div class="legend-header">3D Legend</div>
+    <div class="legend-body">
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:#50C878"></span>
+        <span>Executed Piles</span>
+        <span class="legend-meta">Casting date filled</span>
+      </div>
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:#F5F7FA"></span>
+        <span>Pending Piles</span>
+        <span class="legend-meta">Not casted yet</span>
+      </div>
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:linear-gradient(135deg,#7CFFB2,#2DE2E6)"></span>
+        <span>Selection Highlight</span>
+        <span class="legend-meta">Clicked pile</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card glass-card" id="chartCard">
     <div class="chart-card-header">
       <div class="chart-title-wrap">
         <div class="chart-title">Execution Trend</div>
@@ -889,14 +724,16 @@
       </div>
       <button class="chart-toggle-btn" id="chartToggleBtn" type="button">Hide</button>
     </div>
-
     <div class="chart-content" id="chartContent">
+      <div class="chart-mode-switcher">
+        <button class="chart-mode-btn active" data-mode="daily">Daily</button>
+        <button class="chart-mode-btn" data-mode="cumulative">Cumulative</button>
+      </div>
       <div class="chart-switcher">
         <button class="chart-btn active" data-metric="pileCount">No Of Piles</button>
         <button class="chart-btn" data-metric="drillingDepth">Drilling Depth</button>
         <button class="chart-btn" data-metric="concreteQty">Concrete Quantity</button>
       </div>
-
       <div class="chart-body">
         <div class="chart-metrics">
           <div>
@@ -908,12 +745,10 @@
             <div class="chart-metric-value" id="chartMetricTotal">0</div>
           </div>
         </div>
-
         <div class="chart-area" id="chartArea">
           <svg class="chart-svg" id="chartSvg" viewBox="0 0 400 210" preserveAspectRatio="none"></svg>
           <div class="chart-tooltip" id="chartTooltip"></div>
         </div>
-
         <div class="chart-legend">
           <span class="chart-pill"><span class="chart-dot"></span><span id="chartLegendText">No Of Piles per Day</span></span>
           <span id="chartDateRange">No data</span>
@@ -922,7 +757,7 @@
     </div>
   </div>
 
-  <div class="footer"><div class="footer-text">APFC | Pile Control Map | Press any Pile for Details</div></div>
+  <div class="footer"><div class="footer-text">APFC | True 3D Pile Model | Underground pile view | Click any pile for details</div></div>
 
   <div id="sidePanel" class="side-panel">
     <div class="side-panel-header">
@@ -933,25 +768,14 @@
   </div>
 
   <script>
-    const APP_VERSION = '2026.03.10.01';
-
+    const APP_VERSION = '2026.03.11.3d.05';
     (function enforceFreshReload() {
       try {
         const url = new URL(window.location.href);
         const currentV = url.searchParams.get('v');
-
         if (currentV !== APP_VERSION) {
           url.searchParams.set('v', APP_VERSION);
           window.location.replace(url.toString());
-          return;
-        }
-
-        if ('caches' in window) {
-          caches.keys().then(keys => {
-            keys.forEach(key => {
-              if (!key.includes(APP_VERSION)) caches.delete(key);
-            });
-          }).catch(() => {});
         }
       } catch (err) {}
     })();
@@ -963,255 +787,254 @@
       '+proj=tmerc +lat_0=0 +lon_0=55.3333333333333 +k=0.9996 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs'
     );
 
-    const csvText = `
-ID,X,Y,Type,dia,top of bar,Cutoff,toe,depth,Top Of Casing,Concrete Qty.,CastingDate
-P1,55.361175,25.081227,P5A,1000,14.365,12.765,0.735,,,,
-P2,55.361205,25.081239,P5A,1000,14.365,12.765,0.735,,,,
-P3,55.361236,25.081251,P5A,1000,14.365,12.765,0.735,,,,
-P4,55.361188,25.081199,P5A,1000,14.365,12.765,0.735,,,,
-P5,55.3612,25.08117,P5A,1000,14.365,12.765,0.735,,,,
-P6,55.361298,25.081275,P5,1000,14.015,12.765,0.735,,,,
-P7,55.36136,25.081301,P5,1000,14.015,12.765,0.735,,,,
-P8,55.361422,25.081327,P5,1000,14.015,12.765,0.735,,,,
-P9,55.361484,25.081353,P5,1000,14.015,12.765,0.735,,,,
-P10,55.361546,25.081379,P5,1000,14.015,12.765,0.735,,,,
-P11,55.361608,25.081405,P5,1000,14.015,12.765,0.735,,,,
-P12,55.36167,25.081431,P5,1000,14.015,12.765,0.735,23,23.5,16.5,10-Mar-26
-P13,55.361732,25.081457,P5,1000,14.015,12.765,0.735,23,23.5,16.5,10-Mar-26
-P14,55.361243,25.081204,P4,1000,14.765,12.765,-5.235,,,,
-P15,55.361279,25.081222,P4,1000,14.765,12.765,-5.235,,,,
-P16,55.36135,25.081253,P4,1000,14.765,12.765,-5.235,,,,
-P17,55.361422,25.081283,P4,1000,14.765,12.765,-5.235,,,,
-P18,55.361494,25.081313,P4,1000,14.765,12.765,-5.235,,,,
-P19,55.361566,25.081343,P4,1000,14.765,12.765,-5.235,,,,
-P20,55.361638,25.081373,P4,1000,14.765,12.765,-5.235,,,,
-P21,55.36171,25.081403,P4,1000,14.765,12.765,-5.235,,,,
-P22,55.361782,25.081433,P4,1000,14.765,12.765,-5.235,,,,
-P23,55.361855,25.081463,P4,1000,14.765,12.765,-5.235,,,,
-P24,55.361238,25.081109,P5,1000,14.015,12.765,0.735,,,,
-P25,55.361263,25.08105,P5,1000,14.015,12.765,0.735,,,,
-P26,55.361288,25.080991,P5,1000,14.015,12.765,0.735,,,,
-P27,55.361313,25.080932,P5,1000,14.015,12.765,0.735,,,,
-P28,55.361338,25.080873,P5,1000,14.015,12.765,0.735,,,,
-P29,55.361363,25.080814,P5,1000,14.015,12.765,0.735,,,,
-P30,55.361388,25.080755,P5,1000,14.015,12.765,0.735,,,,
-P31,55.361271,25.081136,P4,1000,14.765,12.765,-5.235,,,,
-P32,55.361301,25.081068,P4,1000,14.765,12.765,-5.235,,,,
-P33,55.36133,25.081001,P4,1000,14.765,12.765,-5.235,,,,
-P34,55.36136,25.080933,P4,1000,14.765,12.765,-5.235,,,,
-P35,55.361389,25.080865,P4,1000,14.765,12.765,-5.235,,,,
-P36,55.361419,25.080797,P4,1000,14.765,12.765,-5.235,,,,
-P37,55.361448,25.080729,P4,1000,14.765,12.765,-5.235,,,,
-P38,55.361419,25.08069,P5A,1000,14.365,12.765,0.735,,,,
-P39,55.361432,25.080661,P5A,1000,14.365,12.765,0.735,,,,
-P40,55.361445,25.080632,P5A,1000,14.365,12.765,0.735,,,,
-P41,55.361477,25.080648,P5A,1000,14.365,12.765,0.735,,,,
-P42,55.361509,25.080665,P5A,1000,14.365,12.765,0.735,,,,
-P43,498113.253,2775551.711,P1,1200,12.715,11.465,-10.535,,,,
-P44,498116.019,2775552.872,P1,1200,12.715,11.465,-10.535,,,,
-P45,498114.491,2775548.76,P1,1200,12.715,11.465,-10.535,,,,
-P46,498117.258,2775549.921,P1,1200,12.715,11.465,-10.535,,,,
-P47,498119.763,2775554.443,P1,1200,12.715,11.465,-10.535,,,,
-P48,498122.529,2775555.604,P1,1200,12.715,11.465,-10.535,,,,
-P49,498121.001,2775551.493,P1,1200,12.715,11.465,-10.535,,,,
-P50,498123.767,2775552.654,P1,1200,12.715,11.465,-10.535,,,,
-P51,498126.402,2775557.23,P1,1200,12.715,11.465,-10.535,,,,
-P52,498129.168,2775558.391,P1,1200,12.715,11.465,-10.535,,,,
-P53,498127.64,2775554.279,P1,1200,12.715,11.465,-10.535,,,,
-P54,498130.406,2775555.44,P1,1200,12.715,11.465,-10.535,,,,
-P55,498133.041,2775560.016,P1,1200,12.715,11.465,-10.535,,,,
-P56,498135.807,2775561.177,P1,1200,12.715,11.465,-10.535,,,,
-P57,498134.279,2775557.066,P1,1200,12.715,11.465,-10.535,,,,
-P58,498137.045,2775558.227,P1,1200,12.715,11.465,-10.535,,,,
-P59,498139.68,2775562.803,P1,1200,12.715,11.465,-10.535,,,,
-P60,498142.446,2775563.964,P1,1200,12.715,11.465,-10.535,,,,
-P61,498146.411,2775565.628,P1,1200,12.715,11.465,-10.535,,,,
-P62,498149.177,2775566.789,P1,1200,12.715,11.465,-10.535,,,,
-P63,498152.934,2775568.366,P1,1200,12.715,11.465,-10.535,,,,
-P64,498155.701,2775569.527,P1,1200,12.715,11.465,-10.535,,,,
-P65,498159.827,2775571.259,P1,1200,12.715,11.465,-10.535,,,,
-P66,498162.708,2775572.469,P1,1200,12.715,11.465,-10.535,,,,
-P67,498165.59,2775573.678,P1,1200,12.715,11.465,-10.535,,,,
-P68,498140.918,2775559.852,P1,1200,12.715,11.465,-10.535,,,,
-P69,498143.684,2775561.013,P1,1200,12.715,11.465,-10.535,,,,
-P70,498147.649,2775562.677,P1,1200,12.715,11.465,-10.535,,,,
-P71,498150.415,2775563.839,P1,1200,12.715,11.465,-10.535,,,,
-P72,498153.146,2775562.597,P1,1200,12.715,11.465,-10.535,,,,
-P73,498154.173,2775565.416,P1,1200,12.715,11.465,-10.535,,,,
-P74,498156.939,2775566.577,P1,1200,12.715,11.465,-10.535,,,,
-P75,498161.065,2775568.309,P1,1200,12.715,11.465,-10.535,,,,
-P76,498163.947,2775569.518,P1,1200,12.715,11.465,-10.535,,,,
-P77,498166.828,2775570.727,P1,1200,12.715,11.465,-10.535,,,,
-P78,498169.664,2775575.469,P1,1200,12.715,11.465,-10.535,,,,
-P79,498172.43,2775576.63,P1,1200,12.715,11.465,-10.535,,,,
-P80,498170.903,2775572.519,P1,1200,12.715,11.465,-10.535,,,,
-P81,498173.669,2775573.68,P1,1200,12.715,11.465,-10.535,,,,
-P82,498175.305,2775577.398,P4,1000,14.765,12.765,-5.235,,,,
-P83,498180.006,2775579.447,P5,1000,14.015,12.765,0.735,,,,
-P84,498181.689,2775572.744,P4,1000,14.765,12.765,-5.235,,,,
-P85,498185.051,2775575.769,P5,1000,14.015,12.765,0.735,,,,
-P86,498117.374,2775545.252,P1,1200,12.715,11.465,-10.535,,,,
-P87,498120.232,2775546.452,P1,1200,12.715,11.465,-10.535,,,,
-P88,498118.535,2775542.486,P1,1200,12.715,11.465,-10.535,,,,
-P89,498121.393,2775543.686,P1,1200,12.715,11.465,-10.535,,,,
-P90,498120.16,2775538.614,P1,1200,12.715,11.465,-10.535,,,,
-P91,498123.019,2775539.813,P1,1200,12.715,11.465,-10.535,,,,
-P92,498121.321,2775535.847,P1,1200,12.715,11.465,-10.535,,,,
-P93,498124.18,2775537.047,P1,1200,12.715,11.465,-10.535,,,,
-P94,498122.947,2775531.975,P1,1200,12.715,11.465,-10.535,,,,
-P95,498125.805,2775533.174,P1,1200,12.715,11.465,-10.535,,,,
-P96,498124.108,2775529.208,P1,1200,12.715,11.465,-10.535,,,,
-P97,498126.966,2775530.408,P1,1200,12.715,11.465,-10.535,,,,
-P98,498125.733,2775525.336,P1,1200,12.715,11.465,-10.535,,,,
-P99,498128.592,2775526.535,P1,1200,12.715,11.465,-10.535,,,,
-P100,498126.894,2775522.57,P1,1200,12.715,11.465,-10.535,,,,
-P101,498129.753,2775523.769,P1,1200,12.715,11.465,-10.535,,,,
-P102,498124.816,2775548.593,P2,1200,9.215,7.965,-10.035,,,,
-P103,498127.582,2775549.754,P2,1200,9.215,7.965,-10.035,,,,
-P104,498130.348,2775550.915,P2,1200,9.215,7.965,-10.035,,,,
-P105,498133.114,2775552.076,P2,1200,9.215,7.965,-10.035,,,,
-P106,498135.881,2775553.237,P2,1200,9.215,7.965,-10.035,,,,
-P107,498138.647,2775554.398,P2,1200,9.215,7.965,-10.035,,,,
-P108,498126.161,2775545.389,P2,1200,9.215,7.965,-10.035,,,,
-P109,498128.927,2775546.55,P2,1200,9.215,7.965,-10.035,,,,
-P110,498131.693,2775547.711,P2,1200,9.215,7.965,-10.035,,,,
-P111,498134.459,2775548.872,P2,1200,9.215,7.965,-10.035,,,,
-P112,498137.225,2775550.033,P2,1200,9.215,7.965,-10.035,,,,
-P113,498139.992,2775551.194,P2,1200,9.215,7.965,-10.035,,,,
-P114,498127.505,2775542.185,P2,1200,9.215,7.965,-10.035,,,,
-P115,498130.272,2775543.346,P2,1200,9.215,7.965,-10.035,,,,
-P116,498133.038,2775544.507,P2,1200,9.215,7.965,-10.035,,,,
-P117,498135.804,2775545.668,P2,1200,9.215,7.965,-10.035,,,,
-P118,498138.57,2775546.829,P2,1200,9.215,7.965,-10.035,,,,
-P119,498141.337,2775547.99,P2,1200,9.215,7.965,-10.035,,,,
-P120,498128.85,2775538.98,P2,1200,9.215,7.965,-10.035,,,,
-P121,498131.617,2775540.141,P2,1200,9.215,7.965,-10.035,,,,
-P122,498134.383,2775541.303,P2,1200,9.215,7.965,-10.035,,,,
-P123,498137.149,2775542.464,P2,1200,9.215,7.965,-10.035,,,,
-P124,498139.915,2775543.625,P2,1200,9.215,7.965,-10.035,,,,
-P125,498142.681,2775544.786,P2,1200,9.215,7.965,-10.035,,,,
-P126,498130.195,2775535.776,P2,1200,9.215,7.965,-10.035,,,,
-P127,498132.961,2775536.937,P2,1200,9.215,7.965,-10.035,,,,
-P128,498135.728,2775538.098,P2,1200,9.215,7.965,-10.035,,,,
-P129,498138.494,2775539.259,P2,1200,9.215,7.965,-10.035,,,,
-P130,498141.26,2775540.42,P2,1200,9.215,7.965,-10.035,,,,
-P131,498144.026,2775541.581,P2,1200,9.215,7.965,-10.035,,,,
-P132,498143.697,2775553.102,P1,1200,12.715,11.465,-10.535,,,,
-P133,498145.864,2775547.938,P1,1200,12.715,11.465,-10.535,,,,
-P134,498148.631,2775549.099,P1,1200,12.715,11.465,-10.535,,,,
-P135,498152.706,2775550.501,P1,1200,12.715,11.465,-10.535,,,,
-P136,498153.005,2775553.663,P1,1200,12.715,11.465,-10.535,,,,
-P137,498155.472,2775551.662,P1,1200,12.715,11.465,-10.535,,,,
-P138,498157.316,2775558.509,P1,1200,12.715,11.465,-10.535,,,,
-P139,498159.552,2775556.411,P1,1200,12.715,11.465,-10.535,,,,
-P140,498159.483,2775553.345,P1,1200,12.715,11.465,-10.535,,,,
-P141,498146.463,2775554.263,P1A,1200,12.715,11.465,-10.535,,,,
-P142,498150.538,2775555.664,P1A,1200,12.715,11.465,-10.535,,,,
-P143,498153.305,2775556.825,P1A,1200,12.715,11.465,-10.535,,,,
-P144,498160.224,2775562.471,P2,1200,9.215,7.965,-10.035,,,,
-P145,498162.99,2775563.633,P2,1200,9.215,7.965,-10.035,,,,
-P146,498165.756,2775564.794,P2,1200,9.215,7.965,-10.035,,,,
-P147,498168.522,2775565.955,P2,1200,9.215,7.965,-10.035,,,,
-P148,498161.385,2775559.705,P2,1200,9.215,7.965,-10.035,,,,
-P149,498164.151,2775560.866,P2,1200,9.215,7.965,-10.035,,,,
-P150,498166.917,2775562.027,P2,1200,9.215,7.965,-10.035,,,,
-P151,498169.683,2775563.188,P2,1200,9.215,7.965,-10.035,,,,
-P152,498162.546,2775556.939,P2,1200,9.215,7.965,-10.035,,,,
-P153,498165.312,2775558.1,P2,1200,9.215,7.965,-10.035,,,,
-P154,498168.078,2775559.261,P2,1200,9.215,7.965,-10.035,,,,
-P155,498170.844,2775560.422,P2,1200,9.215,7.965,-10.035,,,,
-P156,498163.707,2775554.173,P2,1200,9.215,7.965,-10.035,,,,
-P157,498166.473,2775555.334,P2,1200,9.215,7.965,-10.035,,,,
-P158,498169.239,2775556.495,P2,1200,9.215,7.965,-10.035,,,,
-P159,498172.005,2775557.656,P2,1200,9.215,7.965,-10.035,,,,
-P160,498173.981,2775565.054,P1,1200,12.715,11.465,-10.535,,,,
-P161,498175.994,2775560.259,P1A,1200,12.715,11.465,-10.535,,,,
-P162,498176.115,2775569.147,P1,1200,12.715,11.465,-10.535,,,,
-P163,498176.748,2775566.215,P1,1200,12.715,11.465,-10.535,,,,
-P164,498178.76,2775561.42,P1,1200,12.715,11.465,-10.535,,,,
-P165,498182.338,2775564.228,P4,1000,14.765,12.765,-5.235,,,,
-P166,498188.073,2775568.091,P4,1000,14.765,12.765,-5.235,,,,
-P167,498190.095,2775572.092,P5,1000,14.015,12.765,0.735,,,,
-P168,498133.693,2775533.503,P1,1200,12.715,11.465,-10.535,,,,
-P169,498136.08,2775529.624,P1A,1200,12.715,11.465,-10.535,,,,
-P170,498137.241,2775526.858,P1,1200,12.715,11.465,-10.535,,,,
-P171,498139.041,2775535.747,P1,1200,12.715,11.465,-10.535,,,,
-P172,498141.428,2775531.869,P1,1200,12.715,11.465,-10.535,,,,
-P173,498142.589,2775529.103,P1,1200,12.715,11.465,-10.535,,,,
-P174,498130.038,2775518.955,P3,1200,14.015,12.765,-5.235,,,,
-P175,498136.403,2775522.265,P3,1200,14.015,12.765,-5.235,,,,
-P176,498139.169,2775523.426,P3,1200,14.015,12.765,-5.235,,,,
-P177,498144.001,2775526.06,P3,1200,14.015,12.765,-5.235,,,,
-P178,498145.87,2775528.407,P3,1200,14.015,12.765,-5.235,,,,
-P179,498143.449,2775539.007,P3,1200,14.015,12.765,-5.235,,,,
-P180,498147.086,2775543.612,P3,1200,14.015,12.765,-5.235,,,,
-P181,498150.2,2775535.083,P3,1200,14.015,12.765,-5.235,,,,
-P182,498150.87,2775532.159,P3,1200,14.015,12.765,-5.235,,,,
-P183,498153.679,2775539.342,P3,1200,14.015,12.765,-5.235,,,,
-P184,498155.664,2775545.05,P3,1200,14.015,12.765,-5.235,,,,
-P185,498158.039,2775539.342,P3,1200,14.015,12.765,-5.235,,,,
-P186,498159.582,2775545.419,P3,1200,14.015,12.765,-5.235,,,,
-P187,498162.348,2775546.58,P3,1200,14.015,12.765,-5.235,,,,
-P188,498165.629,2775551.45,P3,1200,14.015,12.765,-5.235,,,,
-P189,498168.395,2775552.611,P3,1200,14.015,12.765,-5.235,,,,
-P190,498134.875,2775510.433,P4,1000,14.765,12.765,-5.235,,,,
-P191,498142.511,2775515.473,P4,1000,14.765,12.765,-5.235,,,,
-P192,498149.582,2775520.546,P4,1000,14.765,12.765,-5.235,,,,
-P193,498156.449,2775525.881,P4,1000,14.765,12.765,-5.235,,,,
-P194,498163.108,2775531.47,P4,1000,14.765,12.765,-5.235,,,,
-P195,498167.989,2775538.933,P4,1000,14.765,12.765,-5.235,,,,
-P196,498169.718,2775537.128,P4,1000,14.765,12.765,-5.235,,,,
-P197,498174.175,2775544.962,P4,1000,14.765,12.765,-5.235,,,,
-P198,498175.949,2775543.201,P4,1000,14.765,12.765,-5.235,,,,
-P199,498180.087,2775551.217,P4,1000,14.765,12.765,-5.235,,,,
-P200,498181.928,2775549.525,P4,1000,14.765,12.765,-5.235,,,,
-P201,498187.482,2775556.219,P4,1000,14.765,12.765,-5.235,,,,
-P202,498189.836,2775559.134,P4,1000,14.765,12.765,-5.235,,,,
-P203,498194.561,2775563.671,P4,1000,14.765,12.765,-5.235,,,,
-P204,498195.14,2775568.415,P4,1000,14.765,12.765,-5.235,,,,
-P205,498139.657,2775505.772,P4,1000,14.765,12.765,-5.235,,,,
-P206,498146.248,2775510.157,P4,1000,14.765,12.765,-5.235,,,,
-P207,498153.101,2775515.064,P4,1000,14.765,12.765,-5.235,,,,
-P208,498159.939,2775520.347,P4,1000,14.765,12.765,-5.235,,,,
-P209,498166.578,2775525.877,P4,1000,14.765,12.765,-5.235,,,,
-P210,498173.01,2775531.647,P4,1000,14.765,12.765,-5.235,,,,
-P211,498179.226,2775537.648,P4,1000,14.765,12.765,-5.235,,,,
-P212,498185.218,2775543.874,P4,1000,14.765,12.765,-5.235,,,,
-P213,498190.978,2775550.315,P4,1000,14.765,12.765,-5.235,,,,
-P214,498196.486,2775556.949,P4,1000,14.765,12.765,-5.235,,,,
-P215,498140.413,2775501.062,P5,1000,14.015,12.765,0.735,,,,
-P216,498146.611,2775505.108,P5,1000,14.015,12.765,0.735,,,,
-P217,498152.691,2775509.329,P5,1000,14.015,12.765,0.735,,,,
-P218,498158.635,2775513.74,P5,1000,14.015,12.765,0.735,,,,
-P219,498164.437,2775518.336,P5,1000,14.015,12.765,0.735,,,,
-P220,498170.087,2775523.118,P5,1000,14.015,12.765,0.735,,,,
-P221,498175.616,2775528.04,P5,1000,14.015,12.765,0.735,,,,
-P222,498180.953,2775533.17,P5,1000,14.015,12.765,0.735,22.46,23.195,16.5,09-Mar-26
-P223,498186.143,2775538.448,P5,1000,14.015,12.765,0.735,24.58,23.35,16.5,07-Mar-26
-P224,498191.166,2775543.884,P5,1000,14.015,12.765,0.735,24.98,23.75,16.5,07-Mar-26
-P225,498196.03,2775549.463,P5,1000,14.015,12.765,0.735,25.13,23.895,16.5,07-Mar-26
-P226,498163.626,2775584.16,P5A,1000,14.365,12.765,0.735,,,,
-P227,498166.772,2775585.48,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
-P228,498169.918,2775586.801,P5A,1000,14.365,12.765,0.735,,,,
-P229,498172.44,2775584.962,P5A,1000,14.365,12.765,0.735,,,,
-P230,498174.962,2775583.124,P5A,1000,14.365,12.765,0.735,,,,
-P231,498200.184,2775564.738,P5A,1000,14.365,12.765,0.735,,,,
-P232,498202.707,2775562.9,P5A,1000,14.365,12.765,0.735,,,,
-P233,498200.708,2775555.2,P5A,1000,14.365,12.765,0.735,23,23.74,16.5,09-Mar-26
-P234,498202.968,2775558.131,P5A,1000,14.365,12.765,0.735,,,,
-P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
+    const csvText = `ID,X,Y,Type,dia,top of bar,Cutoff,toe,depth,Top Of Casing,Concrete Qty.,CastingDate
+P1,55.314506,25.085792,P5A,1000,14.365,12.765,0.735,,,,
+P2,55.314537,25.085804,P5A,1000,14.365,12.765,0.735,,,,
+P3,55.314568,25.085816,P5A,1000,14.365,12.765,0.735,,,,
+P4,55.314519,25.085763,P5A,1000,14.365,12.765,0.735,,,,
+P5,55.314533,25.085734,P5A,1000,14.365,12.765,0.735,,,,
+P6,55.314631,25.085839,P5,1000,14.015,12.765,0.735,,,,
+P7,55.314693,25.085863,P5,1000,14.015,12.765,0.735,,,,
+P8,55.314756,25.085887,P5,1000,14.015,12.765,0.735,,,,
+P9,55.314818,25.085911,P5,1000,14.015,12.765,0.735,,,,
+P10,55.31488,25.085935,P5,1000,14.015,12.765,0.735,,,,
+P11,55.314943,25.085959,P5,1000,14.015,12.765,0.735,,,,
+P12,55.315005,25.085983,P5,1000,14.015,12.765,0.735,23,23.5,16.5,10-Mar-26
+P13,55.315067,25.086007,P5,1000,14.015,12.765,0.735,23,23.5,16.5,10-Mar-26
+P14,55.314564,25.085768,P4,1000,14.765,12.765,-5.235,,,,
+P15,55.3146,25.085784,P4,1000,14.765,12.765,-5.235,,,,
+P16,55.314672,25.085812,P4,1000,14.765,12.765,-5.235,,,,
+P17,55.314744,25.085839,P4,1000,14.765,12.765,-5.235,,,,
+P18,55.314816,25.085867,P4,1000,14.765,12.765,-5.235,,,,
+P19,55.314888,25.085895,P4,1000,14.765,12.765,-5.235,,,,
+P20,55.31496,25.085923,P4,1000,14.765,12.765,-5.235,,,,
+P21,55.315032,25.085951,P4,1000,14.765,12.765,-5.235,,,,
+P22,55.315104,25.085979,P4,1000,14.765,12.765,-5.235,,,,
+P23,55.315176,25.086007,P4,1000,14.765,12.765,-5.235,,,,
+P24,55.314566,25.085676,P5,1000,14.015,12.765,0.735,,,,
+P25,55.314593,25.085618,P5,1000,14.015,12.765,0.735,,,,
+P26,55.314619,25.08556,P5,1000,14.015,12.765,0.735,,,,
+P27,55.314646,25.085502,P5,1000,14.015,12.765,0.735,,,,
+P28,55.314673,25.085443,P5,1000,14.015,12.765,0.735,,,,
+P29,55.314699,25.085385,P5,1000,14.015,12.765,0.735,,,,
+P30,55.314726,25.085327,P5,1000,14.015,12.765,0.735,,,,
+P31,55.3146,25.085706,P4,1000,14.765,12.765,-5.235,,,,
+P32,55.31463,25.08564,P4,1000,14.765,12.765,-5.235,,,,
+P33,55.31466,25.085573,P4,1000,14.765,12.765,-5.235,,,,
+P34,55.314691,25.085507,P4,1000,14.765,12.765,-5.235,,,,
+P35,55.314721,25.085441,P4,1000,14.765,12.765,-5.235,,,,
+P36,55.314751,25.085375,P4,1000,14.765,12.765,-5.235,,,,
+P37,55.314782,25.085308,P4,1000,14.765,12.765,-5.235,,,,
+P38,55.314754,25.08527,P5A,1000,14.365,12.765,0.735,,,,
+P39,55.314767,25.085241,P5A,1000,14.365,12.765,0.735,,,,
+P40,55.314781,25.085212,P5A,1000,14.365,12.765,0.735,,,,
+P41,55.314813,25.08523,P5A,1000,14.365,12.765,0.735,,,,
+P42,55.314845,25.085247,P5A,1000,14.365,12.765,0.735,,,,
+P43,55.314641,25.085738,P1,1200,12.715,11.465,-10.535,,,,
+P44,55.314668,25.085749,P1,1200,12.715,11.465,-10.535,,,,
+P45,55.314655,25.085712,P1,1200,12.715,11.465,-10.535,,,,
+P46,55.314682,25.085722,P1,1200,12.715,11.465,-10.535,,,,
+P47,55.314706,25.085763,P1,1200,12.715,11.465,-10.535,,,,
+P48,55.314733,25.085773,P1,1200,12.715,11.465,-10.535,,,,
+P49,55.314719,25.085736,P1,1200,12.715,11.465,-10.535,,,,
+P50,55.314746,25.085747,P1,1200,12.715,11.465,-10.535,,,,
+P51,55.314771,25.085788,P1,1200,12.715,11.465,-10.535,,,,
+P52,55.314798,25.085798,P1,1200,12.715,11.465,-10.535,,,,
+P53,55.314785,25.085761,P1,1200,12.715,11.465,-10.535,,,,
+P54,55.314812,25.085772,P1,1200,12.715,11.465,-10.535,,,,
+P55,55.314838,25.085813,P1,1200,12.715,11.465,-10.535,,,,
+P56,55.314865,25.085823,P1,1200,12.715,11.465,-10.535,,,,
+P57,55.314851,25.085786,P1,1200,12.715,11.465,-10.535,,,,
+P58,55.314878,25.085797,P1,1200,12.715,11.465,-10.535,,,,
+P59,55.314903,25.085838,P1,1200,12.715,11.465,-10.535,,,,
+P60,55.31493,25.085849,P1,1200,12.715,11.465,-10.535,,,,
+P61,55.314969,25.085864,P1,1200,12.715,11.465,-10.535,,,,
+P62,55.314996,25.085875,P1,1200,12.715,11.465,-10.535,,,,
+P63,55.315033,25.085889,P1,1200,12.715,11.465,-10.535,,,,
+P64,55.31506,25.085899,P1,1200,12.715,11.465,-10.535,,,,
+P65,55.3151,25.085915,P1,1200,12.715,11.465,-10.535,,,,
+P66,55.315129,25.085927,P1,1200,12.715,11.465,-10.535,,,,
+P67,55.315157,25.085938,P1,1200,12.715,11.465,-10.535,,,,
+P68,55.314915,25.085811,P1,1200,12.715,11.465,-10.535,,,,
+P69,55.314942,25.085822,P1,1200,12.715,11.465,-10.535,,,,
+P70,55.31498,25.085838,P1,1200,12.715,11.465,-10.535,,,,
+P71,55.315007,25.085849,P1,1200,12.715,11.465,-10.535,,,,
+P72,55.315034,25.085839,P1,1200,12.715,11.465,-10.535,,,,
+P73,55.315043,25.085865,P1,1200,12.715,11.465,-10.535,,,,
+P74,55.31507,25.085876,P1,1200,12.715,11.465,-10.535,,,,
+P75,55.31511,25.085892,P1,1200,12.715,11.465,-10.535,,,,
+P76,55.315138,25.085903,P1,1200,12.715,11.465,-10.535,,,,
+P77,55.315166,25.085915,P1,1200,12.715,11.465,-10.535,,,,
+P78,55.315193,25.085957,P1,1200,12.715,11.465,-10.535,,,,
+P79,55.31522,25.085968,P1,1200,12.715,11.465,-10.535,,,,
+P80,55.315206,25.085931,P1,1200,12.715,11.465,-10.535,,,,
+P81,55.315233,25.085942,P1,1200,12.715,11.465,-10.535,,,,
+P82,55.315248,25.085975,P4,1000,14.765,12.765,-5.235,,,,
+P83,55.315294,25.085992,P5,1000,14.015,12.765,0.735,,,,
+P84,55.315313,25.085931,P4,1000,14.765,12.765,-5.235,,,,
+P85,55.315346,25.085957,P5,1000,14.015,12.765,0.735,,,,
+P86,55.314683,25.085679,P1,1200,12.715,11.465,-10.535,,,,
+P87,55.314711,25.08569,P1,1200,12.715,11.465,-10.535,,,,
+P88,55.314695,25.085654,P1,1200,12.715,11.465,-10.535,,,,
+P89,55.314723,25.085665,P1,1200,12.715,11.465,-10.535,,,,
+P90,55.314712,25.085619,P1,1200,12.715,11.465,-10.535,,,,
+P91,55.314739,25.08563,P1,1200,12.715,11.465,-10.535,,,,
+P92,55.314723,25.085594,P1,1200,12.715,11.465,-10.535,,,,
+P93,55.314751,25.085605,P1,1200,12.715,11.465,-10.535,,,,
+P94,55.314739,25.085559,P1,1200,12.715,11.465,-10.535,,,,
+P95,55.314767,25.08557,P1,1200,12.715,11.465,-10.535,,,,
+P96,55.314751,25.085534,P1,1200,12.715,11.465,-10.535,,,,
+P97,55.314779,25.085545,P1,1200,12.715,11.465,-10.535,,,,
+P98,55.314768,25.085499,P1,1200,12.715,11.465,-10.535,,,,
+P99,55.314795,25.08551,P1,1200,12.715,11.465,-10.535,,,,
+P100,55.314779,25.085474,P1,1200,12.715,11.465,-10.535,,,,
+P101,55.314807,25.085485,P1,1200,12.715,11.465,-10.535,,,,
+P102,55.314756,25.085709,P2,1200,9.215,7.965,-10.035,,,,
+P103,55.314783,25.08572,P2,1200,9.215,7.965,-10.035,,,,
+P104,55.31481,25.08573,P2,1200,9.215,7.965,-10.035,,,,
+P105,55.314837,25.085741,P2,1200,9.215,7.965,-10.035,,,,
+P106,55.314864,25.085751,P2,1200,9.215,7.965,-10.035,,,,
+P107,55.314891,25.085762,P2,1200,9.215,7.965,-10.035,,,,
+P108,55.314769,25.08568,P2,1200,9.215,7.965,-10.035,,,,
+P109,55.314796,25.085691,P2,1200,9.215,7.965,-10.035,,,,
+P110,55.314823,25.085701,P2,1200,9.215,7.965,-10.035,,,,
+P111,55.31485,25.085712,P2,1200,9.215,7.965,-10.035,,,,
+P112,55.314877,25.085723,P2,1200,9.215,7.965,-10.035,,,,
+P113,55.314904,25.085733,P2,1200,9.215,7.965,-10.035,,,,
+P114,55.314782,25.085651,P2,1200,9.215,7.965,-10.035,,,,
+P115,55.314809,25.085662,P2,1200,9.215,7.965,-10.035,,,,
+P116,55.314836,25.085672,P2,1200,9.215,7.965,-10.035,,,,
+P117,55.314863,25.085683,P2,1200,9.215,7.965,-10.035,,,,
+P118,55.31489,25.085694,P2,1200,9.215,7.965,-10.035,,,,
+P119,55.314917,25.085704,P2,1200,9.215,7.965,-10.035,,,,
+P120,55.314795,25.085623,P2,1200,9.215,7.965,-10.035,,,,
+P121,55.314822,25.085633,P2,1200,9.215,7.965,-10.035,,,,
+P122,55.314849,25.085644,P2,1200,9.215,7.965,-10.035,,,,
+P123,55.314876,25.085655,P2,1200,9.215,7.965,-10.035,,,,
+P124,55.314903,25.085665,P2,1200,9.215,7.965,-10.035,,,,
+P125,55.31493,25.085676,P2,1200,9.215,7.965,-10.035,,,,
+P126,55.314808,25.085594,P2,1200,9.215,7.965,-10.035,,,,
+P127,55.314835,25.085604,P2,1200,9.215,7.965,-10.035,,,,
+P128,55.314862,25.085615,P2,1200,9.215,7.965,-10.035,,,,
+P129,55.314889,25.085626,P2,1200,9.215,7.965,-10.035,,,,
+P130,55.314916,25.085636,P2,1200,9.215,7.965,-10.035,,,,
+P131,55.314943,25.085647,P2,1200,9.215,7.965,-10.035,,,,
+P132,55.31494,25.08575,P1,1200,12.715,11.465,-10.535,,,,
+P133,55.314962,25.085703,P1,1200,12.715,11.465,-10.535,,,,
+P134,55.314989,25.085714,P1,1200,12.715,11.465,-10.535,,,,
+P135,55.315028,25.085727,P1,1200,12.715,11.465,-10.535,,,,
+P136,55.31503,25.085756,P1,1200,12.715,11.465,-10.535,,,,
+P137,55.315054,25.085737,P1,1200,12.715,11.465,-10.535,,,,
+P138,55.315071,25.085799,P1,1200,12.715,11.465,-10.535,,,,
+P139,55.315093,25.08578,P1,1200,12.715,11.465,-10.535,,,,
+P140,55.315092,25.085752,P1,1200,12.715,11.465,-10.535,,,,
+P141,55.314966,25.085761,P1A,1200,12.715,11.465,-10.535,,,,
+P142,55.315005,25.085774,P1A,1200,12.715,11.465,-10.535,,,,
+P143,55.315032,25.085785,P1A,1200,12.715,11.465,-10.535,,,,
+P144,55.315099,25.085836,P2,1200,9.215,7.965,-10.035,,,,
+P145,55.315126,25.085847,P2,1200,9.215,7.965,-10.035,,,,
+P146,55.315153,25.085858,P2,1200,9.215,7.965,-10.035,,,,
+P147,55.31518,25.085869,P2,1200,9.215,7.965,-10.035,,,,
+P148,55.315111,25.085811,P2,1200,9.215,7.965,-10.035,,,,
+P149,55.315138,25.085821,P2,1200,9.215,7.965,-10.035,,,,
+P150,55.315165,25.085832,P2,1200,9.215,7.965,-10.035,,,,
+P151,55.315192,25.085843,P2,1200,9.215,7.965,-10.035,,,,
+P152,55.315122,25.085786,P2,1200,9.215,7.965,-10.035,,,,
+P153,55.315149,25.085796,P2,1200,9.215,7.965,-10.035,,,,
+P154,55.315176,25.085807,P2,1200,9.215,7.965,-10.035,,,,
+P155,55.315203,25.085818,P2,1200,9.215,7.965,-10.035,,,,
+P156,55.315133,25.08576,P2,1200,9.215,7.965,-10.035,,,,
+P157,55.31516,25.085771,P2,1200,9.215,7.965,-10.035,,,,
+P158,55.315187,25.085782,P2,1200,9.215,7.965,-10.035,,,,
+P159,55.315214,25.085792,P2,1200,9.215,7.965,-10.035,,,,
+P160,55.315233,25.085859,P1,1200,12.715,11.465,-10.535,,,,
+P161,55.315251,25.085814,P1A,1200,12.715,11.465,-10.535,,,,
+P162,55.315252,25.085896,P1,1200,12.715,11.465,-10.535,,,,
+P163,55.315258,25.085869,P1,1200,12.715,11.465,-10.535,,,,
+P164,55.315277,25.085824,P1,1200,12.715,11.465,-10.535,,,,
+P165,55.315311,25.085849,P4,1000,14.765,12.765,-5.235,,,,
+P166,55.315367,25.085883,P4,1000,14.765,12.765,-5.235,,,,
+P167,55.315386,25.085919,P5,1000,14.015,12.765,0.735,,,,
+P168,55.314842,25.085574,P1,1200,12.715,11.465,-10.535,,,,
+P169,55.314865,25.085538,P1A,1200,12.715,11.465,-10.535,,,,
+P170,55.314876,25.085512,P1,1200,12.715,11.465,-10.535,,,,
+P171,55.314893,25.085593,P1,1200,12.715,11.465,-10.535,,,,
+P172,55.314916,25.085557,P1,1200,12.715,11.465,-10.535,,,,
+P173,55.314927,25.085531,P1,1200,12.715,11.465,-10.535,,,,
+P174,55.314805,25.085442,P3,1200,14.015,12.765,-5.235,,,,
+P175,55.314867,25.085473,P3,1200,14.015,12.765,-5.235,,,,
+P176,55.314894,25.085484,P3,1200,14.015,12.765,-5.235,,,,
+P177,55.314941,25.085507,P3,1200,14.015,12.765,-5.235,,,,
+P178,55.314959,25.085529,P3,1200,14.015,12.765,-5.235,,,,
+P179,55.314935,25.085624,P3,1200,14.015,12.765,-5.235,,,,
+P180,55.31497,25.085665,P3,1200,14.015,12.765,-5.235,,,,
+P181,55.315,25.085587,P3,1200,14.015,12.765,-5.235,,,,
+P182,55.315006,25.085561,P3,1200,14.015,12.765,-5.235,,,,
+P183,55.315032,25.085625,P3,1200,14.015,12.765,-5.235,,,,
+P184,55.31505,25.085677,P3,1200,14.015,12.765,-5.235,,,,
+P185,55.315073,25.085626,P3,1200,14.015,12.765,-5.235,,,,
+P186,55.315088,25.08568,P3,1200,14.015,12.765,-5.235,,,,
+P187,55.315115,25.085691,P3,1200,14.015,12.765,-5.235,,,,
+P188,55.315146,25.085735,P3,1200,14.015,12.765,-5.235,,,,
+P189,55.315173,25.085746,P3,1200,14.015,12.765,-5.235,,,,
+P190,55.314852,25.085365,P4,1000,14.765,12.765,-5.235,,,,
+P191,55.314927,25.085409,P4,1000,14.765,12.765,-5.235,,,,
+P192,55.314995,25.085454,P4,1000,14.765,12.765,-5.235,,,,
+P193,55.315061,25.085502,P4,1000,14.765,12.765,-5.235,,,,
+P194,55.315126,25.085552,P4,1000,14.765,12.765,-5.235,,,,
+P195,55.315173,25.085619,P4,1000,14.765,12.765,-5.235,,,,
+P196,55.31519,25.085603,P4,1000,14.765,12.765,-5.235,,,,
+P197,55.315233,25.085673,P4,1000,14.765,12.765,-5.235,,,,
+P198,55.31525,25.085657,P4,1000,14.765,12.765,-5.235,,,,
+P199,55.31529,25.085729,P4,1000,14.765,12.765,-5.235,,,,
+P200,55.315308,25.085713,P4,1000,14.765,12.765,-5.235,,,,
+P201,55.315362,25.085772,P4,1000,14.765,12.765,-5.235,,,,
+P202,55.315385,25.085798,P4,1000,14.765,12.765,-5.235,,,,
+P203,55.315431,25.085838,P4,1000,14.765,12.765,-5.235,,,,
+P204,55.315436,25.085881,P4,1000,14.765,12.765,-5.235,,,,
+P205,55.314898,25.085322,P4,1000,14.765,12.765,-5.235,,,,
+P206,55.314962,25.08536,P4,1000,14.765,12.765,-5.235,,,,
+P207,55.315028,25.085404,P4,1000,14.765,12.765,-5.235,,,,
+P208,55.315094,25.085451,P4,1000,14.765,12.765,-5.235,,,,
+P209,55.315158,25.0855,P4,1000,14.765,12.765,-5.235,,,,
+P210,55.31522,25.085552,P4,1000,14.765,12.765,-5.235,,,,
+P211,55.31528,25.085605,P4,1000,14.765,12.765,-5.235,,,,
+P212,55.315338,25.08566,P4,1000,14.765,12.765,-5.235,,,,
+P213,55.315394,25.085718,P4,1000,14.765,12.765,-5.235,,,,
+P214,55.315447,25.085778,P4,1000,14.765,12.765,-5.235,,,,
+P215,55.314907,25.08528,P5,1000,14.015,12.765,0.735,,,,
+P216,55.314967,25.085316,P5,1000,14.015,12.765,0.735,,,,
+P217,55.315026,25.085354,P5,1000,14.015,12.765,0.735,,,,
+P218,55.315084,25.085394,P5,1000,14.015,12.765,0.735,,,,
+P219,55.31514,25.085436,P5,1000,14.015,12.765,0.735,,,,
+P220,55.315195,25.08548,P5,1000,14.015,12.765,0.735,,,,
+P221,55.315249,25.085526,P5,1000,14.015,12.765,0.735,,,,
+P222,55.315301,25.085573,P5,1000,14.015,12.765,0.735,22.46,23.195,16.5,09-Mar-26
+P223,55.315351,25.085621,P5,1000,14.015,12.765,0.735,24.58,23.35,16.5,07-Mar-26
+P224,55.3154,25.085671,P5,1000,14.015,12.765,0.735,24.98,23.75,16.5,07-Mar-26
+P225,55.315447,25.085723,P5,1000,14.015,12.765,0.735,25.13,23.895,16.5,07-Mar-26
+P226,55.315129,25.086033,P5A,1000,14.365,12.765,0.735,,,,
+P227,55.31516,25.086045,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
+P228,55.315191,25.086057,P5A,1000,14.365,12.765,0.735,,,,
+P229,55.315216,25.086039,P5A,1000,14.365,12.765,0.735,,,,
+P230,55.315241,25.086022,P5A,1000,14.365,12.765,0.735,,,,
+P231,55.315492,25.085855,P5A,1000,14.365,12.765,0.735,,,,
+P232,55.315517,25.085838,P5A,1000,14.365,12.765,0.735,,,,
+P233,55.315497,25.085769,P5A,1000,14.365,12.765,0.735,23,23.74,16.5,09-Mar-26
+P234,55.31552,25.085795,P5A,1000,14.365,12.765,0.735,,,,
+P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
 `;
 
-    const FEATURE_ID_FIELDS = ['pileid', 'PileID', 'pile_id', 'ID', 'id', 'name', 'Name'];
-    const CLICKABLE_LAYER_IDS = [];
-    const CASTING_DATE_LAYER_ID = 'casting-date-labels';
+    const DEFAULT_SITE_CENTER = [55.314915, 25.085616];
+    const PILE_SEGMENTS = 72;
+    const DISPLAY_RADIUS_SCALE = 1.35;
+    const MIN_DISPLAY_RADIUS_M = 0.75;
+    const PLATFORM_LEVEL_M = 22.5;
 
     function parseCSV(csv) {
       const lines = csv.trim().split(/\r?\n/).filter(Boolean);
       if (lines.length < 2) return [];
-
       const headers = lines[0].split(',').map(h => h.trim());
-
       return lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.trim());
         const row = {};
@@ -1220,79 +1043,107 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
       });
     }
 
+    function parseNumber(value) {
+      if (value === undefined || value === null || value === '') return 0;
+      const n = Number(String(value).replace(/,/g, '').trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+
     function normalizeId(value) {
       return String(value || '').trim().toUpperCase();
     }
 
-    function parseNumber(value) {
-      if (value === undefined || value === null || value === '') return 0;
-      const cleaned = String(value).replace(/,/g, '').trim();
-      const num = Number(cleaned);
-      return Number.isFinite(num) ? num : 0;
+    function looksLikeLonLat(x, y) {
+      return x > 20 && x < 80 && y > 10 && y < 40;
+    }
+
+    function toLonLat(x, y) {
+      if (!x || !y) return null;
+      if (looksLikeLonLat(x, y)) return [x, y];
+      try {
+        const converted = proj4('EPSG:3997', 'WGS84', [x, y]);
+        if (Array.isArray(converted) && converted.length === 2) return converted;
+      } catch (err) {}
+      return null;
+    }
+
+    function isExecutedRow(row) {
+      return !!String(row['CastingDate'] || '').trim();
+    }
+
+    function getPileTopElevation(row) {
+      const cutoff = parseNumber(row.Cutoff);
+      const topBar = parseNumber(row['top of bar']);
+      return cutoff || topBar || 0;
+    }
+
+    function getPileBottomElevation(row) {
+      return parseNumber(row.toe);
+    }
+
+    function getPileDepth(row) {
+      if (isExecutedRow(row)) {
+        const asbuiltDepth = parseNumber(row.depth);
+        if (asbuiltDepth > 0) return asbuiltDepth;
+      }
+      const toeLevel = parseNumber(row.toe);
+      return Math.max(0, PLATFORM_LEVEL_M - toeLevel);
+    }
+
+    function getVisiblePileHeight(row) {
+      return getPileDepth(row);
+    }
+
+    function getPileRadiusMeters(row) {
+      const diaMm = parseNumber(row.dia);
+      const actualRadius = diaMm > 0 ? diaMm / 2000 : 0.5;
+      return Math.max(actualRadius * DISPLAY_RADIUS_SCALE, MIN_DISPLAY_RADIUS_M);
+    }
+
+    function getPileColor(row) {
+      return isExecutedRow(row) ? 0x50C878 : 0xF5F7FA;
     }
 
     function parseCastingDateParts(value) {
       const raw = String(value || '').trim();
       if (!raw) return null;
-
-      const monthMap = {
-        jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-        jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
-      };
-
-      let m;
-
-      m = raw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+      const monthMap = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+      let m = raw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
       if (m) {
-        let day = Number(m[1]);
-        let month = Number(m[2]);
-        let year = Number(m[3]);
+        let day = Number(m[1]), month = Number(m[2]), year = Number(m[3]);
         if (year < 100) year += 2000;
         return { year, month, day };
       }
-
       m = raw.match(/^(\d{1,2})[-\/]([A-Za-z]{3})[-\/](\d{2,4})$/);
       if (m) {
-        let day = Number(m[1]);
-        let month = monthMap[m[2].toLowerCase()];
-        let year = Number(m[3]);
+        let day = Number(m[1]), month = monthMap[m[2].toLowerCase()], year = Number(m[3]);
         if (year < 100) year += 2000;
         if (month) return { year, month, day };
       }
-
       m = raw.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
-      if (m) {
-        return {
-          year: Number(m[1]),
-          month: Number(m[2]),
-          day: Number(m[3])
-        };
-      }
-
+      if (m) return { year:Number(m[1]), month:Number(m[2]), day:Number(m[3]) };
       return null;
     }
 
     function normalizeDateString(value) {
       const parts = parseCastingDateParts(value);
       if (!parts) return '';
-      return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+      return `${parts.year}-${String(parts.month).padStart(2,'0')}-${String(parts.day).padStart(2,'0')}`;
     }
 
     function formatDateLabel(value) {
-      const parts = parseCastingDateParts(value) || (() => {
-        const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (!m) return null;
-        return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) };
-      })();
-
-      if (!parts) return value || '';
-
-      const d = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
-      return d.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        timeZone: 'UTC'
-      });
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      const parts = parseCastingDateParts(value) || parseCastingDateParts(normalizeDateString(value));
+      if (parts) {
+        const d = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+      }
+      const direct = new Date(raw);
+      if (!Number.isNaN(direct.getTime())) {
+        return direct.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      }
+      return raw;
     }
 
     function formatMetricValue(metric, value) {
@@ -1306,57 +1157,78 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
       return 'Concrete Quantity';
     }
 
-    function looksLikeLonLat(x, y) {
-      return x > 20 && x < 80 && y > 10 && y < 40;
+    function buildPileRecords(rows) {
+      return rows.map(row => {
+        const x = parseNumber(row.X);
+        const y = parseNumber(row.Y);
+        const lngLat = toLonLat(x, y);
+        if (!lngLat) return null;
+        return {
+          row,
+          id: normalizeId(row.ID),
+          lngLat,
+          radiusM: getPileRadiusMeters(row),
+          heightM: getVisiblePileHeight(row),
+          depthM: getPileDepth(row),
+          topElevationM: getPileTopElevation(row),
+          bottomElevationM: getPileBottomElevation(row),
+          color: getPileColor(row),
+          executed: isExecutedRow(row)
+        };
+      }).filter(Boolean);
     }
 
-    function toLonLat(x, y) {
-      if (!x || !y) return null;
-
-      if (looksLikeLonLat(x, y)) return [x, y];
-
-      try {
-        const converted = proj4('EPSG:3997', 'WGS84', [x, y]);
-        if (Array.isArray(converted) && converted.length === 2) return converted;
-      } catch (err) {}
-
-      return null;
+    function getPileCentroid(records) {
+      if (!records.length) return DEFAULT_SITE_CENTER;
+      const sum = records.reduce((acc, rec) => {
+        acc[0] += rec.lngLat[0];
+        acc[1] += rec.lngLat[1];
+        return acc;
+      }, [0, 0]);
+      return [sum[0] / records.length, sum[1] / records.length];
     }
 
-    function isExecutedRow(row) {
-      return !!normalizeDateString(row['CastingDate']);
+    function aggregateDailyData(rows) {
+      const byDay = new Map();
+      rows.forEach(row => {
+        const dateKey = normalizeDateString(row['CastingDate']);
+        if (!dateKey) return;
+        if (!byDay.has(dateKey)) {
+          byDay.set(dateKey, { date: dateKey, pileCount: 0, drillingDepth: 0, concreteQty: 0 });
+        }
+        const item = byDay.get(dateKey);
+        item.pileCount += 1;
+        item.drillingDepth += parseNumber(row.depth);
+        item.concreteQty += parseNumber(row['Concrete Qty.']);
+      });
+      return Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date));
     }
 
-    function getProgressStats(rows) {
-      const total = rows.length;
-      const executedRows = rows.filter(isExecutedRow);
-      const executed = executedRows.length;
-      const remaining = Math.max(0, total - executed);
-      const percent = total ? (executed / total) * 100 : 0;
-
-      const latestDate = executedRows
-        .map(r => normalizeDateString(r['CastingDate']))
-        .filter(Boolean)
-        .sort()
-        .slice(-1)[0] || '';
-
-      return { total, executed, remaining, percent, latestDate };
+    function getChartSeries(mode) {
+      if (mode === 'daily') return chartData;
+      let piles = 0, depth = 0, qty = 0;
+      return chartData.map(d => {
+        piles += d.pileCount;
+        depth += d.drillingDepth;
+        qty += d.concreteQty;
+        return { date: d.date, pileCount: piles, drillingDepth: depth, concreteQty: qty };
+      });
     }
 
     const csvRows = parseCSV(csvText);
+    const pileRecords = buildPileRecords(csvRows);
     const pileLookup = new Map();
-
-    csvRows.forEach(row => {
-      if (row.ID) pileLookup.set(normalizeId(row.ID), row);
-    });
+    pileRecords.forEach(p => pileLookup.set(p.id, p));
+    const SITE_CENTER = getPileCentroid(pileRecords);
+    const chartData = aggregateDailyData(csvRows);
 
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/yasseralsebaee/cmmfw9dvc00b001ra2h2f5vrw',
-      center: [55.314915, 25.085616],
-      zoom: 14,
-      pitch: 0,
-      bearing: 0,
+      center: SITE_CENTER,
+      zoom: 18.7,
+      pitch: 62,
+      bearing: 18,
       antialias: true
     });
 
@@ -1364,11 +1236,15 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
     map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
     map.addControl(new mapboxgl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-right');
 
-    const sidePanel = document.getElementById('sidePanel');
-    const panelTitle = document.getElementById('panelTitle');
-    const panelBody = document.getElementById('panelBody');
-    const closePanel = document.getElementById('closePanel');
-
+    const planViewBtn = document.getElementById('planViewBtn');
+    const view3DBtn = document.getElementById('view3DBtn');
+    const progressCard = document.getElementById('progressCard');
+    const progressRingValue = document.getElementById('progressRingValue');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressExecuted = document.getElementById('progressExecuted');
+    const progressRemaining = document.getElementById('progressRemaining');
+    const progressTotal = document.getElementById('progressTotal');
+    const progressTooltip = document.getElementById('progressTooltip');
     const chartCard = document.getElementById('chartCard');
     const chartContent = document.getElementById('chartContent');
     const chartToggleBtn = document.getElementById('chartToggleBtn');
@@ -1380,19 +1256,25 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
     const chartLegendText = document.getElementById('chartLegendText');
     const chartDateRange = document.getElementById('chartDateRange');
     const chartButtons = Array.from(document.querySelectorAll('.chart-btn'));
+    const chartModeButtons = Array.from(document.querySelectorAll('.chart-mode-btn'));
+    const pendingOpacitySlider = document.getElementById('pendingOpacitySlider');
+    const executedOpacitySlider = document.getElementById('executedOpacitySlider');
+    
+    const pendingOpacityValue = document.getElementById('pendingOpacityValue');
+    const executedOpacityValue = document.getElementById('executedOpacityValue');
+    
+    const sidePanel = document.getElementById('sidePanel');
+    const panelTitle = document.getElementById('panelTitle');
+    const panelBody = document.getElementById('panelBody');
+    const closePanel = document.getElementById('closePanel');
+    closePanel.addEventListener('click', () => sidePanel.classList.remove('open'));
 
-    const planViewBtn = document.getElementById('planViewBtn');
-    const view3DBtn = document.getElementById('view3DBtn');
-
-    const progressCard = document.getElementById('progressCard');
-    const progressRingValue = document.getElementById('progressRingValue');
-    const progressPercent = document.getElementById('progressPercent');
-    const progressExecuted = document.getElementById('progressExecuted');
-    const progressRemaining = document.getElementById('progressRemaining');
-    const progressTotal = document.getElementById('progressTotal');
-    const progressTooltip = document.getElementById('progressTooltip');
-
+    let currentMetric = 'pileCount';
+    let currentChartMode = 'daily';
     let isChartCollapsed = window.innerWidth <= 640;
+    let pendingBaseOpacity = 0.18;
+    let executedBaseOpacity = 0.42;
+    
 
     function applyChartCollapsedState() {
       chartCard.classList.toggle('collapsed', isChartCollapsed);
@@ -1405,288 +1287,83 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
       applyChartCollapsedState();
     });
 
-    closePanel.addEventListener('click', () => {
-      sidePanel.classList.remove('open');
-    });
-
-    function openPilePanelFromRow(row) {
-      panelTitle.textContent = `${row.ID || 'Pile'} • ${row.Type || 'Details'}`;
-
-      panelBody.innerHTML = `
-        <div class="panel-section">
-          <div class="panel-section-title">Design</div>
-          <div class="info-row"><div class="info-label">Pile ID</div><div class="info-value">${row.ID || ''}</div></div>
-          <div class="info-row"><div class="info-label">Type</div><div class="info-value">${row.Type || ''}</div></div>
-          <div class="info-row"><div class="info-label">Diameter</div><div class="info-value">${row.dia || ''}</div></div>
-          <div class="info-row"><div class="info-label">Top of Bar</div><div class="info-value">${row['top of bar'] || ''}</div></div>
-          <div class="info-row"><div class="info-label">Cutoff</div><div class="info-value">${row.Cutoff || ''}</div></div>
-          <div class="info-row"><div class="info-label">Toe</div><div class="info-value">${row.toe || ''}</div></div>
-          <div class="info-row"><div class="info-label">X</div><div class="info-value">${row.X || ''}</div></div>
-          <div class="info-row"><div class="info-label">Y</div><div class="info-value">${row.Y || ''}</div></div>
-        </div>
-
-        <div class="panel-section">
-          <div class="panel-section-title">Asbuilt</div>
-          <div class="info-row"><div class="info-label">Depth</div><div class="info-value">${row.depth || ''}</div></div>
-          <div class="info-row"><div class="info-label">Top Of Casing</div><div class="info-value">${row['Top Of Casing'] || ''}</div></div>
-          <div class="info-row"><div class="info-label">Concrete Qty.</div><div class="info-value">${row['Concrete Qty.'] || ''}</div></div>
-          <div class="info-row"><div class="info-label">CastingDate</div><div class="info-value">${row['CastingDate'] || ''}</div></div>
-        </div>
-      `;
-
-      sidePanel.classList.add('open');
-    }
-
-    function getCandidateFeatures(point) {
-      if (CLICKABLE_LAYER_IDS.length > 0) {
-        return map.queryRenderedFeatures(point, { layers: CLICKABLE_LAYER_IDS });
-      }
-      return map.queryRenderedFeatures(point);
-    }
-
-    function findMatchingCsvRowFromFeature(feature) {
-      if (!feature || !feature.properties) return null;
-
-      for (const field of FEATURE_ID_FIELDS) {
-        const rawValue = feature.properties[field];
-        if (rawValue === undefined || rawValue === null || rawValue === '') continue;
-
-        const normalized = normalizeId(rawValue);
-        if (pileLookup.has(normalized)) return pileLookup.get(normalized);
-      }
-
-      return null;
-    }
-
-    function getClickedPileRow(point) {
-      const features = getCandidateFeatures(point);
-
-      const prioritized = features
-        .filter(feature => {
-          if (!feature || !feature.properties) return false;
-          return FEATURE_ID_FIELDS.some(field => {
-            const value = feature.properties[field];
-            return value !== undefined && value !== null && value !== '';
-          });
-        })
-        .map(feature => {
-          let layerPriority = 3;
-          const layerType = feature.layer && feature.layer.type ? feature.layer.type : '';
-
-          if (layerType === 'circle') layerPriority = 0;
-          else if (layerType === 'fill') layerPriority = 1;
-          else if (layerType === 'line') layerPriority = 2;
-          else if (layerType === 'symbol') layerPriority = 4;
-
-          let screenDistance = Number.MAX_SAFE_INTEGER;
-          try {
-            if (feature.geometry && feature.geometry.type === 'Point' && Array.isArray(feature.geometry.coordinates)) {
-              const projected = map.project(feature.geometry.coordinates);
-              screenDistance = Math.hypot(projected.x - point.x, projected.y - point.y);
-            }
-          } catch (err) {}
-
-          return { feature, layerPriority, screenDistance };
-        })
-        .sort((a, b) => {
-          if (a.layerPriority !== b.layerPriority) return a.layerPriority - b.layerPriority;
-          return a.screenDistance - b.screenDistance;
-        });
-
-      for (const item of prioritized) {
-        const row = findMatchingCsvRowFromFeature(item.feature);
-        if (row) return row;
-      }
-
-      return null;
-    }
-
-    function buildCastingDateGeoJSON(rows) {
-      const features = [];
-
-      rows.forEach(row => {
-        const x = parseNumber(row.X);
-        const y = parseNumber(row.Y);
-        const castingDate = String(row['CastingDate'] || '').trim();
-        if (!x || !y || !castingDate) return;
-
-        const lngLat = toLonLat(x, y);
-        if (!lngLat) return;
-
-        features.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: lngLat
-          },
-          properties: {
-            ID: row.ID || '',
-            CastingDate: formatDateLabel(castingDate),
-            RawCastingDate: castingDate
-          }
-        });
-      });
-
-      return { type: 'FeatureCollection', features };
-    }
-
-    function aggregateDailyData(rows) {
-      const byDay = new Map();
-
-      rows.forEach(row => {
-        const rawDate = row['CastingDate'];
-        const dateKey = normalizeDateString(rawDate);
-        if (!dateKey) return;
-
-        if (!byDay.has(dateKey)) {
-          byDay.set(dateKey, {
-            date: dateKey,
-            pileCount: 0,
-            drillingDepth: 0,
-            concreteQty: 0
-          });
-        }
-
-        const item = byDay.get(dateKey);
-        item.pileCount += 1;
-        item.drillingDepth += parseNumber(row.depth);
-        item.concreteQty += parseNumber(row['Concrete Qty.']);
-      });
-
-      return Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date));
-    }
-
-    const chartData = aggregateDailyData(csvRows);
-    let currentMetric = 'pileCount';
-
-    function setMapView(mode, options = {}) {
-      const is3D = mode === '3d';
-
-      planViewBtn.classList.toggle('active', !is3D);
-      view3DBtn.classList.toggle('active', is3D);
-
-      if (is3D) {
-        map.easeTo({
-          center: [55.314915, 25.085616],
-          zoom: 19,
-          pitch: 66.5,
-          bearing: 17.29,
-          duration: options.instant ? 0 : 900,
-          essential: true
-        });
-      } else {
-        map.easeTo({
-          center: [55.314915, 25.085616],
-          zoom: 19,
-          pitch: 0,
-          bearing: 0,
-          duration: options.instant ? 0 : 900,
-          essential: true
-        });
-      }
-    }
-
-    planViewBtn.addEventListener('click', () => setMapView('2d'));
-    view3DBtn.addEventListener('click', () => setMapView('3d'));
-
     function renderProgressCard() {
-      const stats = getProgressStats(csvRows);
+      const total = pileRecords.length;
+      const executed = pileRecords.filter(p => p.executed).length;
+      const remaining = Math.max(0, total - executed);
+      const percent = total ? (executed / total) * 100 : 0;
+      const latestDate = pileRecords.filter(p => p.executed).map(p => normalizeDateString(p.row['CastingDate'])).filter(Boolean).sort().slice(-1)[0] || '';
       const radius = 40;
       const circumference = 2 * Math.PI * radius;
-      const offset = circumference * (1 - stats.percent / 100);
-
+      const offset = circumference * (1 - percent / 100);
       progressRingValue.style.strokeDasharray = `${circumference}`;
       progressRingValue.style.strokeDashoffset = `${offset}`;
-
-      progressPercent.textContent = `${stats.percent.toFixed(1)}%`;
-      progressExecuted.textContent = stats.executed.toLocaleString();
-      progressRemaining.textContent = stats.remaining.toLocaleString();
-      progressTotal.textContent = stats.total.toLocaleString();
-
+      progressPercent.textContent = `${percent.toFixed(1)}%`;
+      progressExecuted.textContent = executed.toLocaleString();
+      progressRemaining.textContent = remaining.toLocaleString();
+      progressTotal.textContent = total.toLocaleString();
       progressCard.onmousemove = (e) => {
         const rect = progressCard.getBoundingClientRect();
         progressTooltip.innerHTML = `
           <div class="tooltip-title">Execution Status</div>
-          <div class="tooltip-row"><span class="tooltip-label">Executed</span><span>${stats.executed.toLocaleString()}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Remaining</span><span>${stats.remaining.toLocaleString()}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Total piles</span><span>${stats.total.toLocaleString()}</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Completion</span><span>${stats.percent.toFixed(1)}%</span></div>
-          <div class="tooltip-row"><span class="tooltip-label">Data Date</span><span>${stats.latestDate ? formatDateLabel(stats.latestDate) : 'N/A'}</span></div>
-        `;
+          <div class="tooltip-row"><span class="tooltip-label">Executed</span><span>${executed.toLocaleString()}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Remaining</span><span>${remaining.toLocaleString()}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Total piles</span><span>${total.toLocaleString()}</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Completion</span><span>${percent.toFixed(1)}%</span></div>
+          <div class="tooltip-row"><span class="tooltip-label">Data Date</span><span>${latestDate ? formatDateLabel(latestDate) : 'N/A'}</span></div>`;
         progressTooltip.style.left = `${Math.min(rect.width - 172, Math.max(8, e.clientX - rect.left + 10))}px`;
         progressTooltip.style.top = `${Math.min(rect.height - 120, Math.max(8, e.clientY - rect.top + 10))}px`;
         progressTooltip.classList.add('show');
       };
-
-      progressCard.onmouseleave = () => {
-        progressTooltip.classList.remove('show');
-      };
+      progressCard.onmouseleave = () => progressTooltip.classList.remove('show');
     }
 
     function renderChart(metric) {
       currentMetric = metric;
       const title = metricTitle(metric);
-
+      const series = getChartSeries(currentChartMode);
       chartMetricLabel.textContent = title;
       chartLegendText.textContent = `${title} per Day`;
       chartButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.metric === metric));
-
-      if (!chartData.length) {
+      chartModeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === currentChartMode));
+      if (!series.length) {
         chartMetricTotal.textContent = '0';
         chartDateRange.textContent = 'No data';
         chartSvg.innerHTML = `<text x="200" y="95" fill="rgba(255,255,255,0.65)" text-anchor="middle" font-size="13">No casting data available</text>`;
         chartTooltip.classList.remove('show');
         return;
       }
-
-      const values = chartData.map(d => Number(d[metric] || 0));
+      const values = series.map(d => Number(d[metric] || 0));
       const total = values.reduce((a, b) => a + b, 0);
       const maxVal = Math.max(...values, 1);
       const minVal = 0;
-
-      const left = 42;
-      const right = 14;
-      const top = 16;
-      const bottom = 28;
-      const width = 400;
-      const height = 210;
+      const left = 42, right = 14, top = 16, bottom = 28, width = 400, height = 210;
       const plotWidth = width - left - right;
       const plotHeight = height - top - bottom;
-
-      const points = chartData.map((d, i) => {
-        const x = left + (chartData.length === 1 ? plotWidth / 2 : (i / (chartData.length - 1)) * plotWidth);
+      const points = series.map((d, i) => {
+        const x = left + (series.length === 1 ? plotWidth / 2 : (i / (series.length - 1)) * plotWidth);
         const value = Number(d[metric] || 0);
         const y = top + plotHeight - ((value - minVal) / Math.max(maxVal - minVal, 1)) * plotHeight;
         return { x, y, value, date: d.date };
       });
-
       const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
       const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(2)} ${(top + plotHeight).toFixed(2)} L ${points[0].x.toFixed(2)} ${(top + plotHeight).toFixed(2)} Z`;
-
       const gridLines = 4;
       const yLabels = [];
       const yGrid = [];
       for (let i = 0; i <= gridLines; i++) {
         const y = top + (i / gridLines) * plotHeight;
         const value = maxVal - (i / gridLines) * (maxVal - minVal);
-        yGrid.push(`<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="rgba(255,255,255,0.12)" stroke-width="1" />`);
+        yGrid.push(`<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1" />`);
         yLabels.push(`<text x="${left - 8}" y="${y + 4}" fill="rgba(255,255,255,0.66)" text-anchor="end" font-size="9.5">${formatMetricValue(metric, value)}</text>`);
       }
-
-      const xStep = chartData.length > 8 ? Math.ceil(chartData.length / 6) : 1;
+      const xStep = series.length > 8 ? Math.ceil(series.length / 6) : 1;
       const xLabels = points.map((p, i) => {
-        if (i % xStep !== 0 && i !== chartData.length - 1) return '';
+        if (i % xStep !== 0 && i !== series.length - 1) return '';
         return `<text x="${p.x}" y="${height - 9}" fill="rgba(255,255,255,0.68)" text-anchor="middle" font-size="9.5">${formatDateLabel(p.date)}</text>`;
       }).join('');
-
-      const dots = points.map((p, i) => `
-        <circle cx="${p.x}" cy="${p.y}" r="4.1" fill="#E8D611" stroke="rgba(17,17,17,0.88)" stroke-width="1.4" data-index="${i}"></circle>
-      `).join('');
-
-      const hoverZones = points.map((p, i) => `
-        <rect x="${Math.max(0, p.x - 14)}" y="${top}" width="28" height="${plotHeight}" fill="transparent" data-index="${i}"></rect>
-      `).join('');
-
+      const dots = points.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="4.1" fill="#E8D611" stroke="rgba(17,17,17,0.88)" stroke-width="1.4" data-index="${i}"></circle>`).join('');
+      const hoverZones = points.map((p, i) => `<rect x="${Math.max(0, p.x - 14)}" y="${top}" width="28" height="${plotHeight}" fill="transparent" data-index="${i}"></rect>`).join('');
       chartSvg.innerHTML = `
         <defs>
           <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
@@ -1695,10 +1372,7 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
           </linearGradient>
           <filter id="lineGlow">
             <feGaussianBlur stdDeviation="2.2" result="coloredBlur"></feGaussianBlur>
-            <feMerge>
-              <feMergeNode in="coloredBlur"></feMergeNode>
-              <feMergeNode in="SourceGraphic"></feMergeNode>
-            </feMerge>
+            <feMerge><feMergeNode in="coloredBlur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
           </filter>
         </defs>
         ${yGrid.join('')}
@@ -1708,206 +1382,371 @@ P235,498205.229,2775561.061,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
         <path d="${linePath}" fill="none" stroke="#E8D611" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"></path>
         ${dots}
         ${xLabels}
-        <g id="chartHoverLayer">${hoverZones}</g>
-      `;
-
+        <g id="chartHoverLayer">${hoverZones}</g>`;
       chartMetricTotal.textContent = formatMetricValue(metric, total);
-      chartDateRange.textContent = `${formatDateLabel(chartData[0].date)} - ${formatDateLabel(chartData[chartData.length - 1].date)}`;
-
+      chartDateRange.textContent = `${formatDateLabel(series[0].date)} - ${formatDateLabel(series[series.length - 1].date)}`;
       const hoverLayer = document.getElementById('chartHoverLayer');
       const zones = hoverLayer ? hoverLayer.querySelectorAll('[data-index]') : [];
-
       zones.forEach(zone => {
         zone.addEventListener('mousemove', () => {
           const idx = Number(zone.getAttribute('data-index'));
           const point = points[idx];
-          const row = chartData[idx];
+          const row = series[idx];
           const rect = chartArea.getBoundingClientRect();
-
           chartTooltip.innerHTML = `
             <div class="tooltip-title">${formatDateLabel(row.date)}</div>
-            <div class="tooltip-row"><span class="tooltip-label">Casted Piles</span><span>${formatMetricValue('pileCount', row.pileCount)}</span></div>
+            <div class="tooltip-row"><span class="tooltip-label">${currentChartMode === 'daily' ? 'Casted Piles' : 'Casted Piles Cum.'}</span><span>${formatMetricValue('pileCount', row.pileCount)}</span></div>
             <div class="tooltip-row"><span class="tooltip-label">Drilled Depth</span><span>${formatMetricValue('drillingDepth', row.drillingDepth)} m</span></div>
-            <div class="tooltip-row"><span class="tooltip-label">Concrete Poured</span><span>${formatMetricValue('concreteQty', row.concreteQty)} m3</span></div>
-          `;
-
+            <div class="tooltip-row"><span class="tooltip-label">Concrete Poured</span><span>${formatMetricValue('concreteQty', row.concreteQty)} m3</span></div>`;
           chartTooltip.style.left = `${Math.min(rect.width - 172, Math.max(8, point.x - 30))}px`;
           chartTooltip.style.top = `${Math.max(8, point.y - 84)}px`;
           chartTooltip.classList.add('show');
         });
-
-        zone.addEventListener('mouseleave', () => {
-          chartTooltip.classList.remove('show');
-        });
+        zone.addEventListener('mouseleave', () => chartTooltip.classList.remove('show'));
       });
     }
 
-    chartButtons.forEach(btn => {
-      btn.addEventListener('click', () => renderChart(btn.dataset.metric));
-    });
+    chartButtons.forEach(btn => btn.addEventListener('click', () => renderChart(btn.dataset.metric)));
+    chartModeButtons.forEach(btn => btn.addEventListener('click', () => {
+      currentChartMode = btn.dataset.mode;
+      renderChart(currentMetric);
+    }));
 
-    function addCastingDateLabels() {
-      const data = buildCastingDateGeoJSON(csvRows);
-      if (!data.features.length) return;
+    function getBaseOpacityForRecord(record) {
+      return record.executed ? executedBaseOpacity : pendingBaseOpacity;
+    }
 
-      if (map.getLayer(CASTING_DATE_LAYER_ID)) map.removeLayer(CASTING_DATE_LAYER_ID);
-      if (map.getSource(CASTING_DATE_LAYER_ID)) map.removeSource(CASTING_DATE_LAYER_ID);
+    function getDepthOpacityFactor(record) {
+      return 1;
+    }
 
-      map.addSource(CASTING_DATE_LAYER_ID, {
-        type: 'geojson',
-        data
+    function getNormalOpacity(record) {
+      return Math.max(0.05, getBaseOpacityForRecord(record) * getDepthOpacityFactor(record));
+    }
+
+    function refreshPileAppearance() {
+      pileLayer.meshes.forEach(mesh => {
+        const record = mesh.userData.record;
+        const isSelected = record.id === pileLayer.highlightedId;
+        const isHovered = record.id === pileLayer.hoveredId;
+        if (isSelected) return;
+        if (isHovered) return;
+        mesh.material.color.setHex(record.color);
+        mesh.material.emissive = new THREE.Color(0x000000);
+        mesh.material.emissiveIntensity = 0;
+        mesh.material.opacity = getNormalOpacity(record);
+      });
+      map.triggerRepaint();
+    }
+
+    function bindVisibilityControls() {
+      pendingOpacityValue.textContent = pendingBaseOpacity.toFixed(2);
+      executedOpacityValue.textContent = executedBaseOpacity.toFixed(2);
+
+      pendingOpacitySlider.addEventListener('input', () => {
+        pendingBaseOpacity = Number(pendingOpacitySlider.value);
+        pendingOpacityValue.textContent = pendingBaseOpacity.toFixed(2);
+        refreshPileAppearance();
       });
 
-      map.addLayer({
-        id: CASTING_DATE_LAYER_ID,
-        type: 'symbol',
-        source: CASTING_DATE_LAYER_ID,
-        layout: {
-          'text-field': ['get', 'CastingDate'],
-          'text-size': [
-            'interpolate', ['linear'], ['zoom'],
-            16, 10,
-            18, 11,
-            20, 12
-          ],
-          'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          'text-anchor': 'left',
-          'text-offset': [1.15, 0],
-          'text-allow-overlap': true,
-          'text-ignore-placement': true
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0,0,0,0.82)',
-          'text-halo-width': 1.8,
-          'text-halo-blur': 0.3
-        }
+      executedOpacitySlider.addEventListener('input', () => {
+        executedBaseOpacity = Number(executedOpacitySlider.value);
+        executedOpacityValue.textContent = executedBaseOpacity.toFixed(2);
+        refreshPileAppearance();
       });
     }
 
-    function handleResponsiveState() {
-      if (window.innerWidth <= 640) {
-        if (!chartCard.classList.contains('collapsed') && chartToggleBtn.dataset.userExpanded !== 'true') {
-          isChartCollapsed = true;
-        }
-      } else if (chartToggleBtn.dataset.userExpanded !== 'false') {
-        isChartCollapsed = false;
+    function openPilePanel(record) {
+      const row = record.row;
+      panelTitle.textContent = `${row.ID || 'Pile'} • ${row.Type || 'Details'}`;
+      panelBody.innerHTML = `
+        <div class="panel-section">
+          <div class="panel-section-title">Design</div>
+          <div class="info-row"><div class="info-label">Pile ID</div><div class="info-value">${row.ID || ''}</div></div>
+          <div class="info-row"><div class="info-label">Type</div><div class="info-value">${row.Type || ''}</div></div>
+          <div class="info-row"><div class="info-label">Diameter</div><div class="info-value">${row.dia || ''} mm</div></div>
+          <div class="info-row"><div class="info-label">Top of Bar</div><div class="info-value">${row['top of bar'] || ''}</div></div>
+          <div class="info-row"><div class="info-label">Cutoff</div><div class="info-value">${row.Cutoff || ''}</div></div>
+          <div class="info-row"><div class="info-label">Toe</div><div class="info-value">${row.toe || ''}</div></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Asbuilt</div>
+          <div class="info-row"><div class="info-label">Depth</div><div class="info-value">${row.depth || ''}</div></div>
+          <div class="info-row"><div class="info-label">Top Of Casing</div><div class="info-value">${row['Top Of Casing'] || ''}</div></div>
+          <div class="info-row"><div class="info-label">Concrete Qty.</div><div class="info-value">${row['Concrete Qty.'] || ''}</div></div>
+          <div class="info-row"><div class="info-label">CastingDate</div><div class="info-value">${formatDateLabel(row['CastingDate']) || ''}</div></div>
+          
+          <div class="info-row"><div class="info-label">Status</div><div class="info-value">${record.executed ? 'Executed' : 'Pending'}</div></div>
+        </div>`;
+      sidePanel.classList.add('open');
+    }
+
+    function setMapView(mode, options = {}) {
+      const is3D = mode === '3d';
+      planViewBtn.classList.toggle('active', !is3D);
+      view3DBtn.classList.toggle('active', is3D);
+      map.easeTo({
+        center: SITE_CENTER,
+        zoom: is3D ? 19.2 : 19,
+        pitch: is3D ? 58 : 0,
+        bearing: is3D ? 18 : 0,
+        duration: options.instant ? 0 : 900,
+        essential: true
+      });
+    }
+
+    planViewBtn.addEventListener('click', () => setMapView('2d'));
+    view3DBtn.addEventListener('click', () => setMapView('3d'));
+
+    class ThreePileLayer {
+      constructor(id) {
+        this.id = id;
+        this.type = 'custom';
+        this.renderingMode = '3d';
+        this.map = null;
+        this.camera = null;
+        this.scene = null;
+        this.renderer = null;
+        this.rootGroup = null;
+        this.meshes = [];
+        this.combinedMatrix = null;
+        this.highlightedId = null;
+        this.hoveredId = null;
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.centerMerc = mapboxgl.MercatorCoordinate.fromLngLat(SITE_CENTER, 0);
+        this.modelTransform = {
+          translateX: this.centerMerc.x,
+          translateY: this.centerMerc.y,
+          translateZ: 0,
+          scale: this.centerMerc.meterInMercatorCoordinateUnits()
+        };
       }
-      applyChartCollapsedState();
+
+      onAdd(map, gl) {
+        this.map = map;
+        this.camera = new THREE.Camera();
+        this.scene = new THREE.Scene();
+        this.rootGroup = new THREE.Group();
+        this.scene.add(this.rootGroup);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.85);
+        this.scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+        sun.position.set(80, -70, 120);
+        this.scene.add(sun);
+        const fill = new THREE.DirectionalLight(0xfff2c2, 0.35);
+        fill.position.set(-50, 50, 90);
+        this.scene.add(fill);
+
+        this.renderer = new THREE.WebGLRenderer({
+          canvas: map.getCanvas(),
+          context: gl,
+          antialias: true
+        });
+        this.renderer.autoClear = false;
+        this.renderer.sortObjects = false;
+        this.buildPiles();
+      }
+
+      buildPiles() {
+        while (this.rootGroup.children.length) {
+          const child = this.rootGroup.children.pop();
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) child.material.dispose();
+        }
+        this.meshes = [];
+
+        pileRecords.forEach(record => {
+          const merc = mapboxgl.MercatorCoordinate.fromLngLat(record.lngLat, 0);
+          const localX = (merc.x - this.centerMerc.x) / this.modelTransform.scale;
+          const localY = (merc.y - this.centerMerc.y) / this.modelTransform.scale;
+          const radius = record.radiusM;
+          const height = record.heightM;
+          const geometry = new THREE.CylinderGeometry(radius, radius, height, PILE_SEGMENTS, 1, false);
+          geometry.rotateX(Math.PI / 2);
+          const material = new THREE.MeshPhongMaterial({
+            color: record.color,
+            transparent: true,
+            opacity: getNormalOpacity(record),
+            shininess: 110,
+            specular: 0x8a8a8a,
+            flatShading: false,
+            side: THREE.DoubleSide,
+            depthTest: false,
+            depthWrite: false
+          });
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.userData.record = record;
+          mesh.position.set(localX, localY, -height / 2);
+          record._local3d = { x: localX, y: localY, zCenter: -height / 2, height, radius };
+          mesh.frustumCulled = false;
+          mesh.renderOrder = 999;
+          this.rootGroup.add(mesh);
+          this.meshes.push(mesh);
+        });
+      }
+
+      setHighlightedPile(recordId) {
+        this.highlightedId = recordId;
+        this.meshes.forEach(mesh => {
+          const record = mesh.userData.record;
+          const isSelected = record.id === recordId;
+          const isExecuted = record.executed;
+          if (isSelected) {
+            const selectedColor = isExecuted ? 0x6FE3A3 : 0xE6EBF0;
+            const emissiveColor = isExecuted ? 0x1F8F6A : 0x9FB6C6;
+            mesh.material.color.setHex(selectedColor);
+            mesh.material.emissive = new THREE.Color(emissiveColor);
+            mesh.material.emissiveIntensity = 0.75;
+            mesh.material.opacity = 0.85;
+          } else {
+            mesh.material.color.setHex(record.color);
+            mesh.material.emissive = new THREE.Color(0x000000);
+            mesh.material.emissiveIntensity = 0;
+            mesh.material.opacity = getNormalOpacity(record);
+          }
+        });
+        this.map.triggerRepaint();
+      }
+
+      setHoverPile(recordId) {
+        this.hoveredId = recordId;
+        this.meshes.forEach(mesh => {
+          const record = mesh.userData.record;
+          const isSelected = record.id === this.highlightedId;
+          const isHovered = record.id === recordId && !isSelected;
+          if (isSelected) return;
+          if (isHovered) {
+            const hoverColor = record.executed ? 0x79E7AE : 0xEEF2F6;
+            const hoverEmissive = record.executed ? 0x2F9E79 : 0xAFC3D1;
+            mesh.material.color.setHex(hoverColor);
+            mesh.material.emissive = new THREE.Color(hoverEmissive);
+            mesh.material.emissiveIntensity = 0.35;
+            mesh.material.opacity = Math.min(0.68, getNormalOpacity(record) + 0.18);
+          } else {
+            mesh.material.color.setHex(record.color);
+            mesh.material.emissive = new THREE.Color(0x000000);
+            mesh.material.emissiveIntensity = 0;
+            mesh.material.opacity = getNormalOpacity(record);
+          }
+        });
+        this.map.triggerRepaint();
+      }
+
+      pick(point) {
+        const canvas = this.map.getCanvas();
+        this.mouse.x = (point.x / canvas.clientWidth) * 2 - 1;
+        this.mouse.y = -((point.y / canvas.clientHeight) * 2 - 1);
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const hits = this.raycaster.intersectObjects(this.meshes, false);
+        if (!hits.length) return null;
+        return hits[0].object.userData.record || null;
+      }
+
+      projectLocalPointToScreen(localPoint) {
+        if (!this.combinedMatrix) return null;
+        const canvas = this.map.getCanvas();
+        const v = localPoint.clone().applyMatrix4(this.combinedMatrix);
+        if (!Number.isFinite(v.x) || !Number.isFinite(v.y) || !Number.isFinite(v.z)) return null;
+        return {
+          x: (v.x * 0.5 + 0.5) * canvas.clientWidth,
+          y: (-v.y * 0.5 + 0.5) * canvas.clientHeight,
+          z: v.z
+        };
+      }
+
+      pickByBody(point, maxDistancePx = 16) {
+        let nearest = null;
+        let nearestDistance = Infinity;
+        for (const record of pileRecords) {
+          if (!record._local3d) continue;
+          const top = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x, record._local3d.y, 0));
+          const bottom = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x, record._local3d.y, -record._local3d.height));
+          if (!top || !bottom) continue;
+          const side = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x + record._local3d.radius, record._local3d.y, 0));
+          const radiusPx = side ? Math.max(6, Math.hypot(side.x - top.x, side.y - top.y)) : 8;
+          const distance = distancePointToSegment(point, top, bottom) - radiusPx;
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = record;
+          }
+        }
+        return nearestDistance <= maxDistancePx ? nearest : null;
+      }
+
+      render(gl, matrix) {
+        const m = new THREE.Matrix4().fromArray(matrix);
+        const l = new THREE.Matrix4()
+          .makeTranslation(this.modelTransform.translateX, this.modelTransform.translateY, this.modelTransform.translateZ)
+          .scale(new THREE.Vector3(this.modelTransform.scale, this.modelTransform.scale, this.modelTransform.scale));
+        this.combinedMatrix = m.clone().multiply(l);
+        this.camera.projectionMatrix = this.combinedMatrix.clone();
+        this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert();
+        this.renderer.resetState();
+        this.renderer.render(this.scene, this.camera);
+        this.map.triggerRepaint();
+      }
+    }
+
+    const pileLayer = new ThreePileLayer('threejs-piles');
+
+    function distancePointToSegment(point, a, b) {
+      const abx = b.x - a.x;
+      const aby = b.y - a.y;
+      const abLen2 = abx * abx + aby * aby;
+      if (abLen2 === 0) return Math.hypot(point.x - a.x, point.y - a.y);
+      const t = Math.max(0, Math.min(1, ((point.x - a.x) * abx + (point.y - a.y) * aby) / abLen2));
+      const projX = a.x + t * abx;
+      const projY = a.y + t * aby;
+      return Math.hypot(point.x - projX, point.y - projY);
+    }
+
+    function getNearestPileRecordFromPoint(point, maxDistancePx = 30) {
+      let nearest = null;
+      let nearestDistance = Infinity;
+      for (const record of pileRecords) {
+        const projected = map.project(record.lngLat);
+        const dx = projected.x - point.x;
+        const dy = projected.y - point.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearest = record;
+        }
+      }
+      return nearestDistance <= maxDistancePx ? nearest : null;
+    }
+
+    function getPileRecordFromInteraction(point, nearestMaxPx = 34) {
+      const raycastRecord = pileLayer.pick(point);
+      if (raycastRecord) return raycastRecord;
+      const bodyRecord = pileLayer.pickByBody(point, 18);
+      if (bodyRecord) return bodyRecord;
+      return getNearestPileRecordFromPoint(point, nearestMaxPx);
     }
 
     map.on('load', () => {
-      setMapView('2d', { instant: false });
-
-      addCastingDateLabels();
-      renderChart(currentMetric);
       renderProgressCard();
-      handleResponsiveState();
+      renderChart(currentMetric);
+      applyChartCollapsedState();
+      bindVisibilityControls();
+      map.addLayer(pileLayer);
+      setMapView('3d', { instant: false });
     });
 
-    window.addEventListener('resize', handleResponsiveState);
-
-    chartToggleBtn.addEventListener('click', () => {
-      chartToggleBtn.dataset.userExpanded = isChartCollapsed ? 'false' : 'true';
+    map.on('click', e => {
+      const record = getPileRecordFromInteraction(e.point, 38);
+      if (!record) return;
+      pileLayer.setHighlightedPile(record.id);
+      openPilePanel(record);
     });
 
-    let touchStartPoint = null;
-    let touchMoved = false;
-    let touchIsSingleTapCandidate = false;
-    let suppressClickUntil = 0;
-    const TAP_MOVE_TOLERANCE = 10;
-    const TAP_MAX_DURATION = 220;
-    let touchStartTime = 0;
-
-    const canvas = map.getCanvas();
-
-    canvas.addEventListener('touchstart', (ev) => {
-      if (!ev.touches || ev.touches.length !== 1) {
-        touchStartPoint = null;
-        touchMoved = true;
-        touchIsSingleTapCandidate = false;
-        suppressClickUntil = Date.now() + 500;
-        return;
-      }
-
-      const t = ev.touches[0];
-      touchStartPoint = { x: t.clientX, y: t.clientY };
-      touchMoved = false;
-      touchIsSingleTapCandidate = true;
-      touchStartTime = Date.now();
-    }, { passive: true });
-
-    canvas.addEventListener('touchmove', (ev) => {
-      if (!touchStartPoint || !ev.touches || ev.touches.length !== 1) {
-        touchMoved = true;
-        touchIsSingleTapCandidate = false;
-        return;
-      }
-
-      const t = ev.touches[0];
-      const dx = t.clientX - touchStartPoint.x;
-      const dy = t.clientY - touchStartPoint.y;
-
-      if (Math.hypot(dx, dy) > TAP_MOVE_TOLERANCE) {
-        touchMoved = true;
-        touchIsSingleTapCandidate = false;
-      }
-    }, { passive: true });
-
-    canvas.addEventListener('touchend', (ev) => {
-      if (!touchStartPoint) {
-        suppressClickUntil = Date.now() + 500;
-        return;
-      }
-
-      const duration = Date.now() - touchStartTime;
-      if (!touchIsSingleTapCandidate || touchMoved || duration > TAP_MAX_DURATION) {
-        touchStartPoint = null;
-        touchIsSingleTapCandidate = false;
-        suppressClickUntil = Date.now() + 500;
-        return;
-      }
-
-      const changedTouch = ev.changedTouches && ev.changedTouches[0];
-      if (!changedTouch) {
-        touchStartPoint = null;
-        touchIsSingleTapCandidate = false;
-        suppressClickUntil = Date.now() + 500;
-        return;
-      }
-
-      const rect = canvas.getBoundingClientRect();
-      const point = {
-        x: changedTouch.clientX - rect.left,
-        y: changedTouch.clientY - rect.top
-      };
-
-      const row = getClickedPileRow(point);
-      if (row) openPilePanelFromRow(row);
-
-      touchStartPoint = null;
-      touchIsSingleTapCandidate = false;
-      suppressClickUntil = Date.now() + 500;
-    }, { passive: true });
-
-    ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'].forEach(eventName => {
-      map.on(eventName, () => {
-        suppressClickUntil = Date.now() + 500;
-        touchIsSingleTapCandidate = false;
-      });
-    });
-
-    map.on('click', (e) => {
-      if (Date.now() < suppressClickUntil) return;
-      const row = getClickedPileRow(e.point);
-      if (row) openPilePanelFromRow(row);
-    });
-
-    map.on('mousemove', (e) => {
-      const row = getClickedPileRow(e.point);
-      map.getCanvas().style.cursor = row ? 'pointer' : '';
+    map.on('mousemove', e => {
+      const record = getPileRecordFromInteraction(e.point, 30);
+      pileLayer.setHoverPile(record ? record.id : null);
+      map.getCanvas().style.cursor = record ? 'pointer' : '';
     });
   </script>
-
 </body>
 </html>
