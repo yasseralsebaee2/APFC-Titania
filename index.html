@@ -852,7 +852,12 @@
   </div>
 
   <div class="visibility-card glass-card">
-    <div class="visibility-header">3D Visibility</div>
+    <div class="visibility-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span>3D Visibility</span>
+        <button id="visibilityToggleBtn" type="button" style="border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.08);color:#fff;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:700;cursor:pointer;">Hide</button>
+      </div>
+    </div>
     <div class="visibility-body">
       <div class="visibility-row"><span class="visibility-label">Pending opacity</span><span class="visibility-value" id="pendingOpacityValue">0.18</span></div>
       <input class="visibility-slider" id="pendingOpacitySlider" type="range" min="0.05" max="0.45" step="0.01" value="0.18">
@@ -1424,6 +1429,8 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
     const chartDateRange = document.getElementById('chartDateRange');
     const chartButtons = Array.from(document.querySelectorAll('.chart-btn'));
     const chartModeButtons = Array.from(document.querySelectorAll('.chart-mode-btn'));
+    const visibilityToggleBtn = document.getElementById('visibilityToggleBtn');
+    const visibilityBody = document.querySelector('.visibility-body');
     const pendingOpacitySlider = document.getElementById('pendingOpacitySlider');
     const executedOpacitySlider = document.getElementById('executedOpacitySlider');
     
@@ -1441,6 +1448,7 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
     let isChartCollapsed = window.innerWidth <= 640;
     let pendingBaseOpacity = 0.18;
     let executedBaseOpacity = 0.42;
+    let isVisibilityCollapsed = false;
     
 
     function applyChartCollapsedState() {
@@ -1609,6 +1617,16 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
       });
       map.triggerRepaint();
     }
+
+    function applyVisibilityCollapsedState() {
+      visibilityBody.style.display = isVisibilityCollapsed ? 'none' : 'flex';
+      visibilityToggleBtn.textContent = isVisibilityCollapsed ? 'Show' : 'Hide';
+    }
+
+    visibilityToggleBtn.addEventListener('click', () => {
+      isVisibilityCollapsed = !isVisibilityCollapsed;
+      applyVisibilityCollapsedState();
+    });
 
     function bindVisibilityControls() {
       pendingOpacityValue.textContent = pendingBaseOpacity.toFixed(2);
@@ -1902,6 +1920,7 @@ P235,55.315542,25.085822,P5A,1000,14.365,12.765,0.735,23,23.5,16.5,10-Mar-26
       renderChart(currentMetric);
       applyChartCollapsedState();
       bindVisibilityControls();
+      applyVisibilityCollapsedState();
       map.addLayer(pileLayer);
       setMapView('3d', { instant: false });
     });
