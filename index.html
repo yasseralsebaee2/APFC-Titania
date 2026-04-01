@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>APFC Dashboard | Project Dashboard</title>
+  
+  <meta name="theme-color" content="#06080b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/APFC_Logo.png">
+  
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand brand-apfc"><img src="assets/APFC_Logo.png" alt="APFC logo" /></div>
+      <div class="nav-group">
+        <button class="nav-btn active" data-icon="overview"><span class="nav-icon"></span><span class="nav-label">Overview</span></button>
+        <button class="nav-btn" data-icon="overview"><span class="nav-icon"></span><span class="nav-label">Map</span></button>
+        <button class="nav-btn" data-icon="production"><span class="nav-icon"></span><span class="nav-label">Production</span></button>
+        <button class="nav-btn" data-icon="timeline"><span class="nav-icon"></span><span class="nav-label">Timeline</span></button>
+        <button class="nav-btn" data-icon="cost"><span class="nav-icon"></span><span class="nav-label">Cost</span></button>
+        <button class="nav-btn" data-icon="quality"><span class="nav-icon"></span><span class="nav-label">Quality</span></button>
+        <button class="nav-btn" data-icon="fleet"><span class="nav-icon"></span><span class="nav-label">Fleet</span></button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="title-wrap">
+        <div class="logo-shell logo-shell-binghatti"><img src="assets/binghatti_logo.jpg" alt="Binghatti logo" /></div>
+        <div class="title-block">
+          <div class="eyebrow">BINGHATTI</div>
+          <div class="page-title">Project Dashboard</div>
+          <div class="page-subtitle" id="pageSubtitle">Project Titania</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="chip" id="dataSourceChip">Live Data Source</div>
+        <div class="mode-toggle" id="overviewDateModeToggle">
+          <button class="active" data-mode="shift" type="button">Shift 7–6:59</button>
+          <button data-mode="calendar" type="button">Calendar</button>
+        </div>
+        <button class="action-btn" id="refreshDashboardBtn" type="button">Refresh Dashboard</button>
+        <button class="action-btn primary" type="button">Titania</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="kpi-row" id="kpiRow">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Piles</div>
+          <div class="kpi-value" id="kpiTotal">0</div>
+          <div class="kpi-meta"><span id="kpiTotalMetaL">Design Qty</span><span class="kpi-trend" id="kpiTotalMetaR">Live</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Piles Completed</div>
+          <div class="kpi-value" id="kpiExecuted">0</div>
+          <div class="kpi-meta"><span id="kpiCompletedMetaL">0.0% executed</span><span class="kpi-trend" id="kpiCompletedMetaR">0 yesterday</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Piles Remaining</div>
+          <div class="kpi-value" id="kpiRemaining">0</div>
+          <div class="kpi-meta"><span id="kpiRemainingMetaL">Remaining to execute</span><span class="kpi-trend" id="kpiRemainingMetaR">0%</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Rigs</div>
+          <div class="kpi-value" id="kpiRigs">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Production (1W)</div>
+          <div class="kpi-value" id="kpiAvg">0</div>
+          <div class="kpi-meta"><span id="kpiAvgMetaL">Avg Lm (1W)</span><span class="kpi-trend" id="kpiAvgMeta">Week-to-date avg</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Est Completion</div>
+          <div class="kpi-value" id="kpiEta">—</div>
+          <div class="kpi-meta"><span id="kpiEtaMeta">Duration</span><span class="kpi-trend" id="kpiEtaDays">—</span></div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <section class="page-view active" id="pageOverview">
+          <div class="panel hero">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Production Chart</div>
+                <div class="panel-subtitle"></div>
+              </div>
+              <div class="panel-tag" id="heroVisualTag">Live</div>
+            </div>
+
+            <div class="hero-stage">
+              <div class="chart-shell">
+                <div class="chart-toolbar">
+                  <div class="toggle-group" id="granularityToggleGroup">
+                    <button class="chart-toggle active" data-granularity="day" type="button">Day</button>
+                    <button class="chart-toggle" data-granularity="week" type="button">Week</button>
+                    <button class="chart-toggle" data-granularity="month" type="button">Month</button>
+                  </div>
+                  <div class="mode-switch" id="modeToggleGroup">
+                    <button class="ios-toggle" type="button" id="modeToggle" aria-label="Toggle cumulative mode" aria-pressed="false"></button>
+                    <span class="mode-switch-label" id="modeLabelCumulative">Cumulative</span>
+                  </div>
+                  <div class="toggle-group" id="metricToggleGroup">
+                    <button class="chart-toggle active" data-metric="piles" type="button">Piles</button>
+                    <button class="chart-toggle" data-metric="lm" type="button">Lm</button>
+                    <button class="chart-toggle" data-metric="m3" type="button">m3</button>
+                  </div>
+                </div>
+
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <div>
+                      <div class="chart-title" id="chartTitle">Daily Piles</div>
+                      <div class="chart-subtitle" id="chartSubtitle"></div>
+                    </div>
+                    <div class="panel-tag" id="chartTag">Daily</div>
+                  </div>
+                  <div class="chart-canvas-wrap" id="chartWrap">
+                    <svg class="chart-svg" id="chartSvg" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet">
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#8ef0bf" />
+                          <stop offset="55%" stop-color="#6ee7b7" stop-opacity="0.58" />
+                          <stop offset="100%" stop-color="#6ee7b7" stop-opacity="0.18" />
+                        </linearGradient>
+                      </defs>
+                      <g id="chartGrid"></g>
+                      <g id="chartSeries"></g>
+                      <g id="chartLabels"></g>
+                      <g id="chartXAxis"></g>
+                    </svg>
+                    <div class="chart-tooltip" id="chartTooltip"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="exec-matrix">
+                <div class="matrix-head">
+                  <div>
+                    <div class="matrix-title">Executed Piles Matrix</div>
+                    <div class="matrix-subtitle"></div>
+                  </div>
+                  <div class="panel-tag">CW</div>
+                </div>
+                <div class="matrix-table-wrap">
+                  <table class="matrix-table">
+                    <thead>
+                      <tr>
+                        <th>CW / Date</th>
+                        <th>ID</th>
+                        <th class="num">Lm</th>
+                        <th class="num">m3</th>
+                      </tr>
+                    </thead>
+                    <tbody id="matrixBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <section class="page-view" id="pageMap">
+          <div class="map-page-shell">
+            <div class="map-frame-wrap">
+              <iframe id="projectMapFrame" class="map-frame" src="map.html" title="Project map"></iframe>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-view" id="pageProduction">
+          <div class="production-grid">
+            <div class="prod-card">
+              <div class="prod-head"><div><div class="prod-title">Gross Duration</div><div class="prod-subtitle">Average duration by day or CW</div></div><div class="panel-tag">hrs</div></div>
+              <div class="prod-toolbar" data-prod-toolbar="gross"><button class="mini-toggle active" data-prod-key="gross" data-group="day">Day</button><button class="mini-toggle" data-prod-key="gross" data-group="cw">CW</button></div>
+              <div class="prod-chart-wrap"><svg class="prod-svg" id="prodSvgGross" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+            </div>
+            <div class="prod-card">
+              <div class="prod-head"><div><div class="prod-title">Drilling Duration</div><div class="prod-subtitle">Average duration by day or CW</div></div><div class="panel-tag">hrs</div></div>
+              <div class="prod-toolbar" data-prod-toolbar="drilling"><button class="mini-toggle active" data-prod-key="drilling" data-group="day">Day</button><button class="mini-toggle" data-prod-key="drilling" data-group="cw">CW</button></div>
+              <div class="prod-chart-wrap"><svg class="prod-svg" id="prodSvgDrilling" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+            </div>
+            <div class="prod-card">
+              <div class="prod-head"><div><div class="prod-title">Cage Duration</div><div class="prod-subtitle">Average duration by day or CW</div></div><div class="panel-tag">hrs</div></div>
+              <div class="prod-toolbar" data-prod-toolbar="cage"><button class="mini-toggle active" data-prod-key="cage" data-group="day">Day</button><button class="mini-toggle" data-prod-key="cage" data-group="cw">CW</button></div>
+              <div class="prod-chart-wrap"><svg class="prod-svg" id="prodSvgCage" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+            </div>
+            <div class="prod-card">
+              <div class="prod-head"><div><div class="prod-title">Pouring Duration</div><div class="prod-subtitle">Average duration by day or CW</div></div><div class="panel-tag">hrs</div></div>
+              <div class="prod-toolbar" data-prod-toolbar="concrete"><button class="mini-toggle active" data-prod-key="concrete" data-group="day">Day</button><button class="mini-toggle" data-prod-key="concrete" data-group="cw">CW</button></div>
+              <div class="prod-chart-wrap"><svg class="prod-svg" id="prodSvgConcrete" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+            </div>
+            <div class="prod-card">
+              <div class="prod-head"><div><div class="prod-title">Over Consumption</div><div class="prod-subtitle">Average by day, CW, or pile</div></div><div class="panel-tag">%</div></div>
+              <div class="prod-toolbar" data-prod-toolbar="overconsumption"><button class="mini-toggle active" data-prod-key="overconsumption" data-group="day">Day</button><button class="mini-toggle" data-prod-key="overconsumption" data-group="cw">CW</button><button class="mini-toggle" data-prod-key="overconsumption" data-group="pile">Pile</button></div>
+              <div class="prod-chart-wrap"><svg class="prod-svg" id="prodSvgOverconsumption" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+            </div>
+            <div class="prod-card">
+              <div class="prod-head"><div><div class="prod-title">Over Excavation</div><div class="prod-subtitle">Average by day, CW, or pile</div></div><div class="panel-tag">m</div></div>
+              <div class="prod-toolbar" data-prod-toolbar="overexcavation"><button class="mini-toggle active" data-prod-key="overexcavation" data-group="day">Day</button><button class="mini-toggle" data-prod-key="overexcavation" data-group="cw">CW</button><button class="mini-toggle" data-prod-key="overexcavation" data-group="pile">Pile</button></div>
+              <div class="prod-chart-wrap"><svg class="prod-svg" id="prodSvgOverexcavation" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+            </div>
+          </div>
+        </section>
+
+        
+        <section class="page-view" id="pageTimeline">
+          <div class="timeline-layout">
+            <aside class="timeline-sidebar">
+              <div class="filter-panel">
+                <div class="filter-title">Calendar Filter</div>
+                <div class="date-range-grid">
+                  <div>
+                    <div class="field-label">From</div>
+                    <input type="date" class="date-input" id="timelineStartDate" />
+                  </div>
+                  <div>
+                    <div class="field-label">To</div>
+                    <input type="date" class="date-input" id="timelineEndDate" />
+                  </div>
+                </div>
+                <div class="timeline-filter-actions">
+                  <button class="timeline-action-btn primary" id="timelineApplyBtn" type="button">Apply</button>
+                  <button class="timeline-action-btn" id="timelineClearBtn" type="button">Clear</button>
+                </div>
+                <div class="timeline-filter-actions" style="margin-top:10px;">
+                  <button class="timeline-action-btn" id="timelinePreset7Btn" type="button">Past 7D</button>
+                  <button class="timeline-action-btn" id="timelinePreset14Btn" type="button">Past 14D</button>
+                  <button class="timeline-action-btn" id="timelinePreset30Btn" type="button">Past 1M</button>
+                </div>
+                <div class="timeline-filter-meta" id="timelinePeriodMeta">Select a period on the calendar to filter the timeline and averages.</div>
+              </div>
+
+              <div class="filter-panel" style="min-height:0;">
+                <div class="filter-title">Pile Filter</div>
+                <div class="timeline-pile-list" id="timelinePileList"></div>
+              </div>
+            </aside>
+
+            <div class="timeline-main-grid">
+              <div class="timeline-main-panel">
+                <div class="panel-header">
+                  <div>
+                    <div class="panel-title">Timing Analysis</div>
+                    <div class="panel-subtitle" id="timelineSubtitle">Pile activities timeline filtered by selected period and pile</div>
+                  </div>
+                  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button class="timeline-action-btn" id="timelineZoomOutBtn" type="button">−</button>
+                    <button class="timeline-action-btn" id="timelineZoomResetBtn" type="button">100%</button>
+                    <button class="timeline-action-btn" id="timelineZoomInBtn" type="button">+</button>
+                    <div class="panel-tag" id="timelineTag">All Piles</div>
+                  </div>
+                </div>
+                <div class="timeline-chart-wrap" id="timelineChartWrap">
+                  <svg class="timeline-svg" id="timelineSvg" viewBox="0 0 1200 340" preserveAspectRatio="xMinYMin meet"></svg>
+                  <div class="timeline-empty" id="timelineEmpty" style="display:none;">No pile activity data found for the selected period or pile.</div>
+                </div>
+              </div>
+
+              <div class="timeline-summary">
+                <div class="timeline-table-panel">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">Pile Activity Durations</div>
+                      <div class="panel-subtitle" id="timelineSummarySubtitle">Durations for current filtered scope</div>
+                    </div>
+                    <div class="panel-tag" id="timelinePileTag">All Piles</div>
+                  </div>
+                  <div class="timeline-table-wrap">
+                    <table class="timeline-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Length</th>
+                          <th>Drilling</th>
+                          <th>Cage</th>
+                          <th>Pouring</th>
+                          <th>Gap 1</th>
+                          <th>Gap 2</th>
+                          <th>Gross</th>
+                        </tr>
+                      </thead>
+                      <tbody id="timelineTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="timeline-pie-panel">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">Average Activity Durations (hr) / %</div>
+                      <div class="panel-subtitle" id="timelinePieSubtitle">Current filtered scope</div>
+                    </div>
+                    <div class="panel-tag" id="timelineScopeCount">0 piles</div>
+                  </div>
+                  <div class="timeline-pie-wrap">
+                    <svg class="timeline-pie-svg" id="timelinePieSvg" viewBox="0 0 360 320" preserveAspectRatio="xMidYMid meet"></svg>
+                    <div class="timeline-pie-center">
+                      <div class="timeline-pie-center-inner">
+                        <strong id="timelinePieTotal">0.0</strong>
+                        <span>Gross Hr</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="timeline-legend">
+                    <div class="timeline-legend-item"><span class="timeline-legend-swatch" style="background:#4ade80;"></span>Drilling</div>
+                    <div class="timeline-legend-item"><span class="timeline-legend-swatch" style="background:#f1a9a9;"></span>Gap 1</div>
+                    <div class="timeline-legend-item"><span class="timeline-legend-swatch" style="background:#c4e45f;"></span>Cage</div>
+                    <div class="timeline-legend-item"><span class="timeline-legend-swatch" style="background:#f1a9a9;"></span>Gap 2</div>
+                    <div class="timeline-legend-item"><span class="timeline-legend-swatch" style="background:#4b92c6;"></span>Pouring</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-view" id="pageCost">
+          <div class="cost-layout">
+            <div class="cost-report-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Consolidated Cost Report</div>
+                  <div class="panel-subtitle">Weekly execution cost breakdown based on active site allocations</div>
+                </div>
+                <div class="panel-tag">CW</div>
+              </div>
+              <div class="cost-table-wrap">
+                <table class="financial-table">
+                  <thead>
+                    <tr>
+                      <th class="col-head">CATEGORY / WEEK</th>
+                      <th class="num">Week 10</th>
+                      <th class="num">Week 11</th>
+                      <th class="num">Week 12</th>
+                      <th class="num">Week 13</th>
+                      <th class="num total-col">TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody id="costTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div class="cost-charts-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Weekly Cost Trends</div>
+                  <div class="panel-subtitle">Cost progression by group</div>
+                </div>
+              </div>
+              <div class="cost-charts-body">
+                <div class="cost-chart-card">
+                  <div class="cost-chart-title">Cost by Category (AED)</div>
+                  <div class="cost-chart-wrap">
+                    <svg class="cost-chart-svg" id="costTrendSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+                  </div>
+                </div>
+                <div class="cost-chart-card" style="margin-top: 24px;">
+                  <div class="cost-chart-title">Cost per Executed Lm (AED/Lm)</div>
+                  <div class="cost-chart-wrap">
+                    <svg class="cost-chart-svg" id="costLmSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </section>
+    </main>
+  </div>
+
+  
+</body>
+  <script src="js/app.js"></script>
+  <script>
+    const isLocalPreviewHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    async function clearLocalPreviewCaches() {
+      if (!('caches' in window)) return;
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        if (isLocalPreviewHost) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(reg => reg.unregister()));
+          await clearLocalPreviewCaches();
+          console.log('Local preview cache cleared');
+          return;
+        }
+
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registered', reg))
+          .catch(err => console.error('SW registration failed:', err));
+      });
+    }
+  </script>
+</html>
