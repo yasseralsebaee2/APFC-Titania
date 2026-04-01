@@ -1566,6 +1566,305 @@
   .cost-layout { grid-template-columns: 1fr; }
 }
 
+@media (min-width: 821px) and (max-width: 1180px) {
+  :root {
+    --nav-w: 84px;
+    --header-h: 82px;
+    --gap: 12px;
+  }
+
+  .topbar {
+    padding: 14px 18px;
+    gap: 12px;
+  }
+
+  .title-wrap {
+    gap: 10px;
+  }
+
+  .logo-shell-binghatti {
+    width: 176px;
+    height: 64px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 15px;
+  }
+
+  .top-actions {
+    gap: 8px;
+  }
+
+  .chip,
+  .action-btn,
+  .chart-toggle,
+  #projectSelector {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 10.5px;
+  }
+
+  .mode-toggle button {
+    font-size: 10px;
+    padding: 0 8px;
+  }
+
+  .content {
+    padding: 14px;
+  }
+
+  .kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi-card {
+    min-height: 112px;
+  }
+
+  .kpi-value {
+    font-size: clamp(22px, 2.2vw, 30px);
+  }
+
+  .hero-stage {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  #pageOverview .chart-canvas-wrap {
+    min-height: 360px;
+  }
+
+  .exec-matrix {
+    min-height: 360px;
+  }
+
+  .production-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(280px, 1fr));
+  }
+
+  .prod-card {
+    min-height: 280px;
+  }
+
+  .prod-title {
+    font-size: 13px;
+  }
+
+  .prod-chart-wrap {
+    min-height: 190px;
+  }
+
+  .timeline-layout {
+    grid-template-columns: 270px minmax(0, 1fr);
+  }
+
+  .timeline-pile-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timeline-main-grid,
+  .timeline-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-chart-wrap {
+    min-height: 320px;
+  }
+
+  .cost-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cost-report-panel {
+    min-height: 420px;
+  }
+
+  .cost-chart-wrap {
+    min-height: 240px;
+  }
+
+  #pageMap {
+    height: auto;
+  }
+
+  .map-frame {
+    min-height: 620px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  html, body {
+    overflow: auto;
+  }
+
+  .app {
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .sidebar {
+    grid-row: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+  }
+
+  .sidebar::after {
+    display: none;
+  }
+
+  .nav-group {
+    flex-direction: row;
+    gap: 10px;
+    overflow: auto;
+    width: auto;
+  }
+
+  .nav-btn {
+    min-width: 84px;
+    min-height: 56px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .title-wrap {
+    justify-content: flex-start;
+  }
+
+  .logo-shell-binghatti {
+    width: 184px;
+    height: 68px;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+  }
+
+  .content {
+    overflow: visible;
+    padding: 14px;
+  }
+
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi-card {
+    min-height: 118px;
+  }
+
+  .page-view {
+    height: auto;
+    overflow: visible;
+  }
+
+  .panel.hero,
+  #pageOverview .panel.hero {
+    height: auto;
+  }
+
+  .hero-stage {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #pageOverview .chart-shell,
+  #pageOverview .exec-matrix {
+    min-height: 0;
+  }
+
+  #pageOverview .chart-canvas-wrap {
+    min-height: 420px;
+  }
+
+  .exec-matrix {
+    min-height: 360px;
+  }
+
+  .chart-toolbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .production-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    gap: 12px;
+    height: auto;
+  }
+
+  .prod-card {
+    min-height: 320px;
+  }
+
+  .prod-chart-wrap {
+    min-height: 210px;
+  }
+
+  .timeline-layout,
+  .timeline-main-grid,
+  .timeline-summary,
+  .cost-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-sidebar {
+    order: 0;
+  }
+
+  .timeline-pile-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .timeline-main-grid {
+    grid-template-rows: minmax(320px, auto) auto;
+  }
+
+  .timeline-chart-wrap {
+    min-height: 340px;
+  }
+
+  .timeline-table-panel,
+  .timeline-pie-panel,
+  .cost-report-panel,
+  .cost-charts-panel,
+  .map-page-shell {
+    min-height: 0;
+  }
+
+  .cost-table-wrap {
+    overflow: auto;
+  }
+
+  .cost-chart-wrap {
+    min-height: 260px;
+  }
+
+  #pageMap {
+    height: auto;
+  }
+
+  .map-frame {
+    min-height: 680px;
+  }
+}
+
 .cost-report-panel, .cost-charts-panel {
   display: flex;
   flex-direction: column;
