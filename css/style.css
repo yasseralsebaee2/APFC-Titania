@@ -864,6 +864,7 @@
 
     .matrix-table-wrap {
       min-height: 0;
+      flex: 1;
       height: 100%;
       overflow-x: auto;
       overflow-y: auto;
@@ -1327,6 +1328,7 @@
     }
 
     .timeline-table-wrap {
+      flex: 1;
       min-height: 0;
       overflow: auto;
       border-radius: 14px;
@@ -1375,6 +1377,7 @@
     }
 
     .timeline-pie-wrap {
+      flex: 1;
       min-height: 0;
       position: relative;
       overflow: hidden;
@@ -1750,31 +1753,255 @@
 }
 
 @media (min-width: 821px) and (max-width: 1180px) and (orientation: landscape) {
+  :root {
+    --header-h: 70px;
+    --gap: 8px;
+  }
+
+  .sidebar {
+    padding: 14px 10px;
+    gap: 12px;
+  }
+
+  .nav-group {
+    gap: 8px;
+  }
+
+  .nav-btn {
+    min-height: 48px;
+  }
+
   .content {
+    padding: 8px 10px 10px;
     grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding: 8px 14px;
+    gap: 8px;
+  }
+
+  .top-actions {
+    gap: 6px;
+  }
+
+  .chip,
+  .action-btn,
+  .chart-toggle,
+  #projectSelector {
+    height: 32px;
+    padding: 0 9px;
+    font-size: 9.5px;
+  }
+
+  .mode-toggle {
+    padding: 3px;
+  }
+
+  .mode-toggle button {
+    height: 28px;
+    font-size: 9px;
+    padding: 0 7px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    font-size: 12.5px;
+  }
+
+  .kpi-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .kpi-card {
+    min-height: 78px;
+    padding: 10px 11px;
+    gap: 6px;
+  }
+
+  .kpi-label {
+    font-size: 9px;
+  }
+
+  .kpi-value {
+    font-size: clamp(16px, 1.6vw, 22px);
+  }
+
+  .kpi-meta {
+    font-size: 8.5px;
+  }
+
+  .panel,
+  .prod-card,
+  .filter-panel,
+  .timeline-main-panel,
+  .timeline-table-panel,
+  .timeline-pie-panel,
+  .cost-report-panel,
+  .cost-charts-panel {
+    padding: 10px;
+    border-radius: 18px;
   }
 
   .panel-header,
   .matrix-head,
   .prod-head {
-    padding-bottom: 8px;
-    margin-bottom: 8px;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
   }
 
   .chart-toolbar {
     gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .hero-stage {
+    grid-template-columns: minmax(0, 1.45fr) 240px;
+    gap: 8px;
+  }
+
+  #pageOverview .chart-shell,
+  #pageOverview .exec-matrix {
+    padding: 10px;
+  }
+
+  #pageOverview .chart-canvas-wrap {
+    min-height: 0;
+  }
+
+  .matrix-table {
+    font-size: 10px;
+  }
+
+  .production-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    height: 100%;
+  }
+
+  .prod-card {
+    min-height: 0;
+    padding: 9px;
+  }
+
+  .prod-title {
+    font-size: 11px;
+  }
+
+  .prod-subtitle {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  .prod-toolbar {
+    gap: 6px;
+  }
+
+  .mini-toggle {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 9.5px;
+  }
+
+  .timeline-layout {
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .timeline-main-grid {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 0.82fr);
+    gap: 8px;
+  }
+
+  .timeline-summary {
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .timeline-table-wrap,
+  .timeline-pie-wrap {
+    min-height: 0;
+  }
+
+  .timeline-pile-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .timeline-chip {
+    font-size: 9.5px;
+    min-height: 28px;
+  }
+
+  .timeline-table {
+    font-size: 10px;
+  }
+
+  .timeline-table thead th {
+    font-size: 9px;
+    padding: 8px 6px;
+  }
+
+  .timeline-table td {
+    padding: 7px 6px;
+  }
+
+  .timeline-pie-center-inner {
+    width: 92px;
+    height: 92px;
+  }
+
+  .timeline-pie-center-inner strong {
+    font-size: 16px;
+  }
+
+  .cost-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+    gap: 8px;
+  }
+
+  .cost-report-panel,
+  .cost-charts-panel,
+  .cost-charts-body,
+  .cost-chart-card {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .cost-charts-body {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .cost-chart-card {
+    margin-top: 0 !important;
+  }
+
+  .cost-chart-wrap {
+    min-height: 0;
+  }
+
+  .cost-chart-title {
+    font-size: 10px;
+    margin-bottom: 6px;
   }
 
   .financial-table {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .financial-table th,
   .financial-table td,
   .matrix-table td,
   .timeline-table td {
-    padding-top: 7px;
-    padding-bottom: 7px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
 }
 
