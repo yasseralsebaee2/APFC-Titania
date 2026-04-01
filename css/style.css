@@ -1567,32 +1567,36 @@
 }
 
 @media (min-width: 821px) and (max-width: 1180px) {
+  html, body {
+    overflow: hidden;
+  }
+
   :root {
     --nav-w: 84px;
-    --header-h: 82px;
-    --gap: 12px;
+    --header-h: 76px;
+    --gap: 10px;
   }
 
   .topbar {
-    padding: 14px 18px;
-    gap: 12px;
-  }
-
-  .title-wrap {
+    padding: 10px 16px;
     gap: 10px;
   }
 
+  .title-wrap {
+    gap: 8px;
+  }
+
   .logo-shell-binghatti {
-    width: 176px;
-    height: 64px;
+    width: 156px;
+    height: 56px;
   }
 
   .page-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .page-subtitle {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .top-actions {
@@ -1603,97 +1607,174 @@
   .action-btn,
   .chart-toggle,
   #projectSelector {
-    height: 36px;
-    padding: 0 12px;
-    font-size: 10.5px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 
   .mode-toggle button {
-    font-size: 10px;
-    padding: 0 8px;
+    font-size: 9.5px;
+    padding: 0 7px;
   }
 
   .content {
-    padding: 14px;
+    padding: 10px 12px 12px;
+    overflow: hidden;
   }
 
   .kpi-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
 
   .kpi-card {
-    min-height: 112px;
+    min-height: 92px;
+    padding: 12px;
   }
 
   .kpi-value {
-    font-size: clamp(22px, 2.2vw, 30px);
+    font-size: clamp(20px, 2vw, 26px);
+  }
+
+  .kpi-meta {
+    font-size: 9.5px;
   }
 
   .hero-stage {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr) 270px;
+    gap: 10px;
   }
 
   #pageOverview .chart-canvas-wrap {
-    min-height: 360px;
+    min-height: 0;
   }
 
   .exec-matrix {
-    min-height: 360px;
+    min-height: 0;
   }
 
   .production-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(280px, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .prod-card {
-    min-height: 280px;
+    min-height: 0;
+    padding: 10px;
   }
 
   .prod-title {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .prod-chart-wrap {
-    min-height: 190px;
+    min-height: 0;
   }
 
   .timeline-layout {
-    grid-template-columns: 270px minmax(0, 1fr);
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 10px;
   }
 
   .timeline-pile-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .timeline-main-grid,
+  .timeline-main-grid {
+    grid-template-rows: minmax(0, 1fr) minmax(220px, 0.68fr);
+    gap: 10px;
+  }
+
   .timeline-summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 10px;
   }
 
   .timeline-chart-wrap {
-    min-height: 320px;
+    min-height: 0;
   }
 
   .cost-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 12px;
   }
 
   .cost-report-panel {
-    min-height: 420px;
+    min-height: 0;
   }
 
   .cost-chart-wrap {
-    min-height: 240px;
+    min-height: 0;
   }
 
-  #pageMap {
-    height: auto;
+  .page-view,
+  .page-view.active,
+  #pageOverview,
+  #pageProduction,
+  #pageTimeline,
+  #pageCost,
+  #pageMap,
+  .workspace,
+  .panel.hero,
+  .map-page-shell,
+  .cost-report-panel,
+  .cost-charts-panel,
+  .timeline-main-panel,
+  .timeline-table-panel,
+  .timeline-pie-panel,
+  .filter-panel {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
   }
 
   .map-frame {
-    min-height: 620px;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .matrix-table-wrap,
+  .timeline-table-wrap,
+  .cost-table-wrap,
+  .timeline-pile-list {
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
+  }
+
+  .cost-charts-body,
+  .cost-chart-card {
+    min-height: 0;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1180px) and (orientation: landscape) {
+  .content {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .panel-header,
+  .matrix-head,
+  .prod-head {
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .chart-toolbar {
+    gap: 8px;
+  }
+
+  .financial-table {
+    font-size: 11px;
+  }
+
+  .financial-table th,
+  .financial-table td,
+  .matrix-table td,
+  .timeline-table td {
+    padding-top: 7px;
+    padding-bottom: 7px;
   }
 }
 
@@ -1739,34 +1820,38 @@
   .topbar {
     flex-direction: column;
     align-items: stretch;
-    padding: 16px;
+    padding: 12px 14px;
+    gap: 10px;
   }
 
   .title-wrap {
     justify-content: flex-start;
+    gap: 8px;
   }
 
   .logo-shell-binghatti {
-    width: 184px;
-    height: 68px;
+    width: 160px;
+    height: 58px;
   }
 
   .top-actions {
     justify-content: flex-start;
+    gap: 8px;
   }
 
   .content {
     overflow: visible;
-    padding: 14px;
+    padding: 12px;
   }
 
   .kpi-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
 
   .kpi-card {
-    min-height: 118px;
+    min-height: 96px;
+    padding: 12px;
   }
 
   .page-view {
@@ -1790,11 +1875,11 @@
   }
 
   #pageOverview .chart-canvas-wrap {
-    min-height: 420px;
+    min-height: 320px;
   }
 
   .exec-matrix {
-    min-height: 360px;
+    min-height: 300px;
   }
 
   .chart-toolbar {
@@ -1810,11 +1895,11 @@
   }
 
   .prod-card {
-    min-height: 320px;
+    min-height: 260px;
   }
 
   .prod-chart-wrap {
-    min-height: 210px;
+    min-height: 180px;
   }
 
   .timeline-layout,
@@ -1829,15 +1914,15 @@
   }
 
   .timeline-pile-list {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .timeline-main-grid {
-    grid-template-rows: minmax(320px, auto) auto;
+    grid-template-rows: minmax(280px, auto) auto;
   }
 
   .timeline-chart-wrap {
-    min-height: 340px;
+    min-height: 280px;
   }
 
   .timeline-table-panel,
@@ -1853,7 +1938,7 @@
   }
 
   .cost-chart-wrap {
-    min-height: 260px;
+    min-height: 210px;
   }
 
   #pageMap {
@@ -1861,7 +1946,42 @@
   }
 
   .map-frame {
-    min-height: 680px;
+    min-height: 520px;
+  }
+
+  .matrix-table-wrap,
+  .timeline-table-wrap,
+  .cost-table-wrap,
+  .timeline-pile-list {
+    max-height: 300px;
+    overflow: auto;
+  }
+
+  .timeline-table-panel,
+  .cost-report-panel {
+    max-height: 420px;
+  }
+
+  .timeline-pie-panel,
+  .cost-charts-panel {
+    max-height: 360px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .chip,
+  .action-btn,
+  .chart-toggle,
+  #projectSelector {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 }
 
