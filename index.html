@@ -9,7 +9,10 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/APFC_Logo.png">
   
-  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    window.APP_BUILD_VERSION = '20260401-1535';
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=20260401-1535" />
 </head>
 <body>
   <div class="app">
@@ -30,7 +33,7 @@
         <div class="title-block">
           <div class="page-title">Project Dashboard</div>
           <div class="page-subtitle" id="pageSubtitle">Project Titania</div>
-          <div class="build-stamp">Published 01 Apr 2026 15:31 GST</div>
+          <div class="build-stamp">Published 01 Apr 2026 15:35 GST</div>
         </div>
       </div>
       <div class="top-actions">
@@ -374,10 +377,11 @@
 
   
 </body>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=20260401-1535"></script>
   <script>
     const isLocalPreviewHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     let hasReloadedForSwUpdate = false;
+    const APP_BUILD_VERSION = window.APP_BUILD_VERSION || '20260401-1535';
 
     async function clearLocalPreviewCaches() {
       if (!('caches' in window)) return;
@@ -407,7 +411,7 @@
           window.location.reload();
         });
 
-        navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register(`./sw.js?v=${APP_BUILD_VERSION}`)
           .then(reg => {
             console.log('Service Worker registered', reg);
 
