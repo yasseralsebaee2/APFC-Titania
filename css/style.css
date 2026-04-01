@@ -1921,17 +1921,17 @@
   }
 
   .timeline-layout {
-    grid-template-columns: 188px minmax(0, 1fr);
+    grid-template-columns: 172px minmax(0, 1fr);
     gap: 8px;
   }
 
   .filter-panel {
-    padding: 8px;
+    padding: 7px;
   }
 
   .filter-title {
-    font-size: 12px;
-    margin-bottom: 8px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .date-range-grid {
@@ -1946,20 +1946,20 @@
   .date-input,
   .timeline-action-btn,
   .timeline-chip {
-    height: 32px;
-    font-size: 10px;
-    padding: 0 10px;
+    height: 30px;
+    font-size: 9.5px;
+    padding: 0 8px;
   }
 
   .timeline-filter-actions {
-    gap: 6px;
-    margin-top: 8px;
+    gap: 5px;
+    margin-top: 6px;
   }
 
   .timeline-filter-meta {
-    margin-top: 8px;
-    font-size: 9.5px;
-    line-height: 1.35;
+    margin-top: 6px;
+    font-size: 9px;
+    line-height: 1.25;
   }
 
   .timeline-main-grid {
@@ -2016,12 +2016,16 @@
   }
 
   #pageMap,
-  #pageMap.active,
+  #pageMap.active {
+    height: calc(100vh - var(--header-h) - 26px);
+    min-height: calc(100vh - var(--header-h) - 26px);
+  }
+
   .map-page-shell,
   .map-frame-wrap,
   .map-frame {
-    height: 100%;
-    min-height: 0;
+    height: calc(100vh - var(--header-h) - 26px);
+    min-height: calc(100vh - var(--header-h) - 26px);
   }
 
   .cost-report-panel,

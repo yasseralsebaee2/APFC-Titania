@@ -697,7 +697,8 @@
       defs.appendChild(grad);
       svg.appendChild(defs);
 
-      const visibleBars = 12;
+      const isPileView = options.groupBy === 'pile';
+      const visibleBars = isPileView ? 8 : 12;
       const wrap = svg.closest('.prod-chart-wrap');
       const wrapWidth = wrap?.clientWidth || svg.clientWidth || svg.getBoundingClientRect().width || 420;
       const wrapHeight = wrap?.clientHeight || svg.clientHeight || svg.getBoundingClientRect().height || 250;
@@ -721,7 +722,9 @@
         : visibleInnerW / Math.max(data.length, 1);
       const innerW = scrollNeeded ? stepX * data.length : visibleInnerW;
       const svgWidth = left + innerW + right;
-      const barW = Math.max(16, Math.min(24, stepX * 0.40));
+      const barW = isPileView
+        ? Math.max(12, Math.min(18, stepX * 0.30))
+        : Math.max(16, Math.min(24, stepX * 0.40));
       const chartWidth = width;
       const labelFontSize = Math.max(9, getProductionLabelFontSize(chartWidth) - 1.5);
       const minBarHeightForLabel = chartWidth < 420 ? 24 : 18;
@@ -1308,6 +1311,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       if (target.closest('.hover-target')) return;
       if (target.closest('.chart-tooltip')) return;
       hideTooltip();
+      hideTimelineTooltip();
       if (typeof window.hideCostTtp === 'function') window.hideCostTtp();
     }
 
