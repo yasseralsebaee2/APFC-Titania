@@ -1296,6 +1296,15 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       if (chartHoverGuide) chartHoverGuide.style.display = 'none';
     }
 
+    function hideChartTooltipsOnOutsideInteraction(evt) {
+      const target = evt.target;
+      if (!target) return;
+      if (target.closest('.hover-target')) return;
+      if (target.closest('.chart-tooltip')) return;
+      hideTooltip();
+      if (typeof window.hideCostTtp === 'function') window.hideCostTtp();
+    }
+
     function syncModeToggleUI() {
       const btn = document.getElementById('modeToggle');
       const isCumulative = chartMode === 'cumulative';
@@ -2596,6 +2605,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           renderTimelinePage(selectedProject);
         });
 
+        document.addEventListener('pointerdown', hideChartTooltipsOnOutsideInteraction);
+        document.addEventListener('scroll', hideTooltip, true);
         window.addEventListener('resize', () => renderDashboard(selectedProject));
       } catch (err) {
         console.error(err);
