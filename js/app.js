@@ -10,7 +10,6 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       authPasswordInput: document.getElementById('authPasswordInput'),
       authSubmitBtn: document.getElementById('authSubmitBtn'),
       authError: document.getElementById('authError'),
-      userContextChip: document.getElementById('userContextChip'),
       signOutBtn: document.getElementById('signOutBtn'),
       projectScopeBtn: document.getElementById('projectScopeBtn'),
       dataSourceChip: document.getElementById('dataSourceChip'),
@@ -220,22 +219,36 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       return `Project ${selectedProject} • Plot ${selectedPlot}`;
     }
 
+    function isManagerUser() {
+      return normalizeText(currentUser?.type).toLowerCase() === 'manager';
+    }
+
+    function canAccessPage(page) {
+      if (!currentUser) return false;
+      if (page === 'cost') return isManagerUser();
+      return true;
+    }
+
     function updateUserContextUi() {
       if (els.pageSubtitle) els.pageSubtitle.textContent = getScopeSubtitle();
       if (els.projectScopeBtn) els.projectScopeBtn.textContent = getScopeLabel();
 
-      if (els.userContextChip) {
-        if (currentUser) {
-          els.userContextChip.hidden = false;
-          els.userContextChip.textContent = currentUser.username;
-        } else {
-          els.userContextChip.hidden = true;
-          els.userContextChip.textContent = 'Signed out';
+      els.navButtons.forEach(btn => {
+        const label = btn.querySelector('.nav-label')?.textContent?.trim();
+        if (label === 'Cost') {
+          const allowCost = isManagerUser();
+          btn.hidden = !allowCost;
+          btn.style.display = allowCost ? '' : 'none';
+          btn.classList.toggle('role-hidden', !allowCost);
         }
-      }
+      });
 
       if (els.signOutBtn) {
         els.signOutBtn.hidden = !currentUser;
+      }
+
+      if (!canAccessPage(activePage)) {
+        activePage = 'overview';
       }
     }
 
@@ -701,6 +714,9 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
 
     function setActivePage(page) {
       if (!currentUser) return;
+      if (!canAccessPage(page)) {
+        page = 'overview';
+      }
       activePage = page;
       els.pageOverview.classList.toggle('active', page === 'overview');
       if (els.pageMap) els.pageMap.classList.toggle('active', page === 'map');

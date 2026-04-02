@@ -10,9 +10,9 @@
   <link rel="apple-touch-icon" href="assets/APFC_Logo.png">
   
   <script>
-    window.APP_BUILD_VERSION = '20260402-1108';
+    window.APP_BUILD_VERSION = '20260402-1123';
   </script>
-  <link rel="stylesheet" href="css/style.css?v=20260402-1108" />
+  <link rel="stylesheet" href="css/style.css?v=20260402-1123" />
 </head>
 <body>
   <div class="auth-shell" id="authShell" aria-hidden="true">
@@ -56,11 +56,10 @@
         <div class="title-block">
           <div class="page-title">Project Dashboard</div>
           <div class="page-subtitle" id="pageSubtitle">Project Titania</div>
-          <div class="build-stamp">App V2.0</div>
+          <div class="build-stamp">App V2.1</div>
         </div>
       </div>
       <div class="top-actions">
-        <div class="chip" id="userContextChip" hidden>Signed out</div>
         <div class="chip" id="dataSourceChip">Live Data Source</div>
         <div class="mode-toggle" id="overviewDateModeToggle">
           <button class="active" data-mode="shift" type="button">Shift 7–6:59</button>
@@ -402,11 +401,11 @@
 
   
 </body>
-  <script src="js/app.js?v=20260402-1108"></script>
+  <script src="js/app.js?v=20260402-1123"></script>
   <script>
     const isLocalPreviewHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     let hasReloadedForSwUpdate = false;
-    const APP_BUILD_VERSION = window.APP_BUILD_VERSION || '20260402-1108';
+    const APP_BUILD_VERSION = window.APP_BUILD_VERSION || '20260402-1123';
 
     async function clearLocalPreviewCaches() {
       if (!('caches' in window)) return;
