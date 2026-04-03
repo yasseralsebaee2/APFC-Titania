@@ -360,6 +360,8 @@ body.auth-locked .auth-shell {
     .nav-btn[data-icon="overview"] .nav-icon::after { width: 4px; height: 4px; right: 1px; bottom: 1px; background: currentColor; border: 0; border-radius: 2px; }
     .nav-btn[data-icon="production"] .nav-icon::before { width: 3px; height: 12px; left: 1px; bottom: 2px; background: currentColor; border: 0; border-radius: 2px; box-shadow: 5px -3px 0 currentColor, 10px -6px 0 currentColor; }
     .nav-btn[data-icon="production"] .nav-icon::after { width: 16px; height: 16px; border-color: transparent transparent currentColor currentColor; border-radius: 0 0 0 5px; left: 1px; top: 0; }
+    .nav-btn[data-icon="manpower"] .nav-icon::before { width: 3px; height: 12px; left: 1px; bottom: 2px; background: currentColor; border: 0; border-radius: 2px; box-shadow: 5px -1px 0 currentColor, 10px -4px 0 currentColor; }
+    .nav-btn[data-icon="manpower"] .nav-icon::after { width: 16px; height: 16px; border-color: transparent transparent currentColor currentColor; border-radius: 0 0 0 5px; left: 1px; top: 0; opacity: 0.72; }
     .nav-btn[data-icon="timeline"] .nav-icon::before { width: 15px; height: 2px; top: 9px; background: currentColor; border: 0; border-radius: 999px; box-shadow: -5px 0 0 currentColor, 5px 0 0 currentColor; }
     .nav-btn[data-icon="timeline"] .nav-icon::after { width: 4px; height: 4px; border: 0; background: currentColor; border-radius: 50%; box-shadow: -6px 0 0 currentColor, 6px 0 0 currentColor; }
     .nav-btn[data-icon="quality"] .nav-icon::before { width: 12px; height: 15px; clip-path: polygon(50% 0%,100% 18%,100% 60%,50% 100%,0% 60%,0% 18%); }
@@ -2695,4 +2697,110 @@ body.auth-locked .auth-shell {
 
 .cost-detail-days {
   color: #dccb95;
+}
+
+.manpower-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+
+.manpower-report-panel,
+.manpower-chart-panel {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.manpower-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.manpower-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.manpower-table th,
+.manpower-table td {
+  padding: 8px 7px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.manpower-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #06090d;
+  color: rgba(244,247,251,0.78);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-weight: 800;
+  font-size: 10px;
+}
+
+.manpower-table th:first-child,
+.manpower-table td:first-child {
+  width: 13%;
+}
+
+.manpower-table th:not(:first-child),
+.manpower-table td:not(:first-child) {
+  width: 8.7%;
+}
+
+.manpower-table td {
+  color: rgba(244,247,251,0.9);
+}
+
+.manpower-table td.num,
+.manpower-table th.num {
+  text-align: right;
+}
+
+.manpower-table tbody tr:hover td {
+  background: rgba(255,255,255,0.04);
+}
+
+.manpower-table td.total-col {
+  color: #8ef0bf;
+  font-weight: 800;
+}
+
+.manpower-chart-wrap {
+  flex: 1;
+  min-height: 220px;
+  padding: 10px 12px 14px;
+}
+
+.manpower-chart-svg {
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+.manpower-empty {
+  color: rgba(244,247,251,0.62);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 18px;
 }

@@ -10,9 +10,9 @@
   <link rel="apple-touch-icon" href="assets/APFC_Logo.png">
   
   <script>
-    window.APP_BUILD_VERSION = '20260403-1116';
+    window.APP_BUILD_VERSION = '20260403-1248';
   </script>
-  <link rel="stylesheet" href="css/style.css?v=20260403-1116" />
+  <link rel="stylesheet" href="css/style.css?v=20260403-1248" />
 </head>
 <body>
   <div class="auth-shell" id="authShell" aria-hidden="true">
@@ -45,6 +45,7 @@
         <button class="nav-btn active" data-icon="overview"><span class="nav-icon"></span><span class="nav-label">Overview</span></button>
         <button class="nav-btn" data-icon="overview"><span class="nav-icon"></span><span class="nav-label">Map</span></button>
         <button class="nav-btn" data-icon="production"><span class="nav-icon"></span><span class="nav-label">Production</span></button>
+        <button class="nav-btn" data-icon="manpower"><span class="nav-icon"></span><span class="nav-label">Manpower</span></button>
         <button class="nav-btn" data-icon="timeline"><span class="nav-icon"></span><span class="nav-label">Timeline</span></button>
         <button class="nav-btn" data-icon="cost"><span class="nav-icon"></span><span class="nav-label">Cost</span></button>
       </div>
@@ -56,7 +57,7 @@
         <div class="title-block">
           <div class="page-title">Project Dashboard</div>
           <div class="page-subtitle" id="pageSubtitle">Project Titania</div>
-          <div class="build-stamp">App V2.3</div>
+          <div class="build-stamp">App V2.4</div>
         </div>
       </div>
       <div class="top-actions">
@@ -232,6 +233,53 @@
           </div>
         </section>
 
+        <section class="page-view" id="pageManpower">
+          <div class="manpower-layout">
+            <div class="manpower-report-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Daily Manpower Matrix</div>
+                  <div class="panel-subtitle">Live daily manpower by role</div>
+                </div>
+                <div class="panel-tag">Day</div>
+              </div>
+              <div class="manpower-table-wrap">
+                <table class="manpower-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th class="num">PM</th>
+                      <th class="num">Engineers</th>
+                      <th class="num">Foreman</th>
+                      <th class="num">Operator</th>
+                      <th class="num">Vibro</th>
+                      <th class="num">Riggers</th>
+                      <th class="num">Welder</th>
+                      <th class="num">Mechanic</th>
+                      <th class="num">Helpers</th>
+                      <th class="num">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="manpowerTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="manpower-chart-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Daily Manpower Histogram</div>
+                  <div class="panel-subtitle">Total manpower by day</div>
+                </div>
+                <div class="panel-tag">Nos</div>
+              </div>
+              <div class="manpower-chart-wrap">
+                <svg class="manpower-chart-svg" id="manpowerHistSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
         
         <section class="page-view" id="pageTimeline">
           <div class="timeline-layout">
@@ -402,11 +450,11 @@
 
   
 </body>
-  <script src="js/app.js?v=20260403-1116"></script>
+  <script src="js/app.js?v=20260403-1248"></script>
   <script>
     const isLocalPreviewHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     let hasReloadedForSwUpdate = false;
-    const APP_BUILD_VERSION = window.APP_BUILD_VERSION || '20260403-1116';
+    const APP_BUILD_VERSION = window.APP_BUILD_VERSION || '20260403-1248';
 
     async function clearLocalPreviewCaches() {
       if (!('caches' in window)) return;

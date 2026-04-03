@@ -1,5 +1,6 @@
 const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-pile-asbuilt.json_';
     const USERS_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-users.json_';
+    const MANPOWER_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc_manpower.json_';
     const DEFAULT_PROJECT = 'Titania';
     const AUTH_STORAGE_KEY = 'apfcDashboardAuth';
 
@@ -79,13 +80,17 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       pageOverview: document.getElementById('pageOverview'),
       pageMap: document.getElementById('pageMap'),
       pageProduction: document.getElementById('pageProduction'),
+      pageManpower: document.getElementById('pageManpower'),
       pageTimeline: document.getElementById('pageTimeline'),
       pageCost: document.getElementById('pageCost'),
+      costTableHeadRow: document.querySelector('.financial-table thead tr'),
       costTableBody: document.getElementById('costTableBody'),
       costTrendWrap: document.getElementById('costTrendWrap'),
       costTrendSvg: document.getElementById('costTrendSvg'),
       costLmWrap: document.getElementById('costLmWrap'),
       costLmSvg: document.getElementById('costLmSvg'),
+      manpowerTableBody: document.getElementById('manpowerTableBody'),
+      manpowerHistSvg: document.getElementById('manpowerHistSvg'),
       projectMapFrame: document.getElementById('projectMapFrame'),
       navButtons: Array.from(document.querySelectorAll('.nav-btn')),
       prodSvgs: {
@@ -100,6 +105,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
     };
 
     let rawRows = [];
+    let manpowerRows = [];
     let usersDirectory = [];
     let currentUser = null;
     let selectedProject = DEFAULT_PROJECT;
@@ -210,6 +216,16 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
         return objectValues;
       }
 
+      return [];
+    }
+
+    function extractManpowerList(data) {
+      if (Array.isArray(data)) return data;
+      if (!data || typeof data !== 'object') return [];
+      const candidates = [data.body, data.rows, data.items, data.data];
+      for (const candidate of candidates) {
+        if (Array.isArray(candidate)) return candidate;
+      }
       return [];
     }
 
@@ -771,6 +787,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       els.pageOverview.classList.toggle('active', page === 'overview');
       if (els.pageMap) els.pageMap.classList.toggle('active', page === 'map');
       els.pageProduction.classList.toggle('active', page === 'production');
+      if (els.pageManpower) els.pageManpower.classList.toggle('active', page === 'manpower');
       els.pageTimeline.classList.toggle('active', page === 'timeline');
       if (els.pageCost) els.pageCost.classList.toggle('active', page === 'cost');
       els.kpiRow.style.display = page === 'overview' ? 'grid' : 'none';
@@ -788,6 +805,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
           (page === 'overview' && label === 'Overview') ||
           (page === 'map' && label === 'Map') ||
           (page === 'production' && label === 'Production') ||
+          (page === 'manpower' && label === 'Manpower') ||
           (page === 'timeline' && label === 'Timeline') ||
           (page === 'cost' && label === 'Cost');
         btn.classList.toggle('active', shouldBeActive);
@@ -795,6 +813,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
 
       if (page === 'overview') renderDashboard(selectedProject);
       if (page === 'production') renderProductionPage(selectedProject, true);
+      if (page === 'manpower') renderManpowerPage(selectedProject);
       if (page === 'timeline') renderTimelinePage(selectedProject, true);
       if (page === 'cost') renderCostPage(selectedProject, true);
     }
@@ -1613,10 +1632,21 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       if (!rawRows.length) throw new Error('No rows found in project source');
       if (!currentUser) throw new Error('Sign in required');
 
+      try {
+        const manpowerRes = await fetch(MANPOWER_URL, { cache: 'no-store' });
+        if (!manpowerRes.ok) throw new Error(`HTTP ${manpowerRes.status}`);
+        const manpowerData = await manpowerRes.json();
+        manpowerRows = extractManpowerList(manpowerData);
+      } catch (err) {
+        console.error('Unable to load manpower source:', err);
+        manpowerRows = [];
+      }
+
       syncProjectScopeFromData();
       broadcastAuthContext();
 
       renderDashboard(selectedProject);
+      if (activePage === 'manpower') renderManpowerPage(selectedProject);
       els.dataSourceChip.textContent = 'Live Data Source';
     }
 
@@ -2300,22 +2330,134 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         const date = getOverviewDateKey(r);
         let cwNum = 0;
         try {
-           cwNum = parseInt(String(getCW(date)).replace(/\D/g, ''), 10);
-        } catch(e) {}
-        
-        if ([10, 11, 12, 13].includes(cwNum)) {
-          const asbuilt = Number(r.asbuilt_depth) || Number(r.design_depth) || 0;
-          cwLmMap.set(cwNum, (cwLmMap.get(cwNum) || 0) + asbuilt);
-        }
+          cwNum = parseInt(String(getCW(date)).replace(/\D/g, ''), 10);
+        } catch (e) {}
+        if (!Number.isFinite(cwNum) || cwNum <= 0) return;
+        const asbuilt = Number(r.asbuilt_depth) || Number(r.design_depth) || 0;
+        cwLmMap.set(cwNum, (cwLmMap.get(cwNum) || 0) + asbuilt);
       });
 
-      const weeks = [10, 11, 12, 13];
+      const baseWeeks = [10, 11, 12, 13];
       const data = {
         10: { pm: 1, se: 2, foreman: 2, op: 3, vb: 1, rig: 5, hl: 7, we: 1, me: 1, rigs: 1 },
         11: { pm: 1, se: 2, foreman: 3, op: 6, vb: 2, rig: 7, hl: 7, we: 2, me: 1, rigs: 2 },
         12: { pm: 1, se: 2, foreman: 3, op: 6, vb: 2, rig: 9, hl: 11, we: 1, me: 1, rigs: 2 },
         13: { pm: 1, se: 3, foreman: 3, op: 6, vb: 2, rig: 9, hl: 11, we: 2, me: 1, rigs: 2 }
       };
+
+      function getManpowerValue(row, keys) {
+        for (const key of keys) {
+          const raw = row?.[key];
+          if (raw === undefined || raw === null || raw === '') continue;
+          const n = Number(raw);
+          if (Number.isFinite(n)) return n;
+        }
+        return 0;
+      }
+
+      const manpowerWeekly = new Map();
+      const filteredManpower = manpowerRows.filter(row => {
+        const projectMatch = normalizeText(row?.project) === normalizeText(selectedProject);
+        const plotMatch = isAllPlotsValue(selectedPlot) || normalizeText(row?.plot) === normalizeText(selectedPlot);
+        return projectMatch && plotMatch;
+      });
+
+      const latestDailyManpower = new Map();
+      filteredManpower.forEach(row => {
+        const dateKey = normalizeDateString(row?.date);
+        if (!dateKey) return;
+        latestDailyManpower.set(dateKey, row);
+      });
+
+      const manpowerDates = Array.from(latestDailyManpower.keys()).sort();
+      const targetLastDay = previousDayKey();
+      let lastDayDateKey = '';
+      for (let i = manpowerDates.length - 1; i >= 0; i -= 1) {
+        if (manpowerDates[i] <= targetLastDay) {
+          lastDayDateKey = manpowerDates[i];
+          break;
+        }
+      }
+      if (!lastDayDateKey && manpowerDates.length) {
+        lastDayDateKey = manpowerDates[manpowerDates.length - 1];
+      }
+
+      const lastDayManpower = lastDayDateKey ? latestDailyManpower.get(lastDayDateKey) : null;
+      const lastDayCounts = lastDayManpower ? {
+        pm: getManpowerValue(lastDayManpower, ['projectmanager', 'project manager']),
+        se: getManpowerValue(lastDayManpower, ['siteengineer', 'site engineer', 'siteenginner']),
+        foreman: getManpowerValue(lastDayManpower, ['foreman']),
+        op: getManpowerValue(lastDayManpower, ['operator', 'operators']),
+        vb: getManpowerValue(lastDayManpower, ['vibro operator', 'vibrooperator', 'vibro_operator']),
+        rig: getManpowerValue(lastDayManpower, ['riggers', 'rigger']),
+        we: getManpowerValue(lastDayManpower, ['welder', 'welders']),
+        me: getManpowerValue(lastDayManpower, ['mechanic', 'mechanics']),
+        hl: getManpowerValue(lastDayManpower, ['helpers', 'helper'])
+      } : { pm: 0, se: 0, foreman: 0, op: 0, vb: 0, rig: 0, we: 0, me: 0, hl: 0 };
+
+      Array.from(latestDailyManpower.values()).forEach(row => {
+        const dateKey = normalizeDateString(row?.date);
+        if (!dateKey) return;
+        let cwNum = 0;
+        try {
+          cwNum = parseInt(String(getCW(dateKey)).replace(/\D/g, ''), 10);
+        } catch (e) {}
+        if (!Number.isFinite(cwNum) || cwNum < 14) return;
+
+        const bucket = manpowerWeekly.get(cwNum) || { dailyRows: [] };
+        bucket.dailyRows.push({
+          date: dateKey,
+          pm: getManpowerValue(row, ['projectmanager', 'project manager']),
+          se: getManpowerValue(row, ['siteengineer', 'site engineer', 'siteenginner']),
+          foreman: getManpowerValue(row, ['foreman']),
+          op: getManpowerValue(row, ['operator', 'operators']),
+          vb: getManpowerValue(row, ['vibro operator', 'vibrooperator', 'vibro_operator']),
+          rig: getManpowerValue(row, ['riggers', 'rigger']),
+          we: getManpowerValue(row, ['welder', 'welders']),
+          me: getManpowerValue(row, ['mechanic', 'mechanics']),
+          hl: getManpowerValue(row, ['helpers', 'helper'])
+        });
+        manpowerWeekly.set(cwNum, bucket);
+      });
+
+      const dynamicWeeks = Array.from(manpowerWeekly.keys()).sort((a, b) => a - b);
+      const weekLastDayLabelMap = new Map();
+      dynamicWeeks.forEach(week => {
+        const bucket = manpowerWeekly.get(week);
+        const dailyRows = Array.isArray(bucket?.dailyRows) ? bucket.dailyRows.sort((a, b) => a.date.localeCompare(b.date)) : [];
+        const lastDaily = dailyRows[dailyRows.length - 1] || {};
+        const days = Math.max(1, Math.min(6, dailyRows.length || 0));
+        weekLastDayLabelMap.set(week, lastDaily.date ? `Last day (${formatShortDateLabel(lastDaily.date)})` : '');
+        data[week] = {
+          source: 'manpower',
+          dailyRows,
+          pm: Number(lastDaily.pm) || 0,
+          se: Number(lastDaily.se) || 0,
+          foreman: Number(lastDaily.foreman) || 0,
+          op: Number(lastDaily.op) || 0,
+          vb: Number(lastDaily.vb) || 0,
+          rig: Number(lastDaily.rig) || 0,
+          we: Number(lastDaily.we) || 0,
+          me: Number(lastDaily.me) || 0,
+          hl: Number(lastDaily.hl) || 0,
+          rigs: 2,
+          daysFromManpower: days
+        };
+      });
+
+      const weeks = [...baseWeeks, ...dynamicWeeks];
+
+      if (els.costTableHeadRow) {
+        const weekHeaders = weeks.map(week => {
+          const lastDayLabel = weekLastDayLabelMap.get(week);
+          if (lastDayLabel) {
+            return `<th class="num"><div>Week ${week}</div><div style="font-size:10px; color:rgba(244,247,251,0.6); margin-top:2px;">${lastDayLabel}</div></th>`;
+          }
+          return `<th class="num">Week ${week}</th>`;
+        }).join('');
+        const lastDayHeaderText = lastDayDateKey ? `Last day (${formatShortDateLabel(lastDayDateKey)})` : 'Last day';
+        els.costTableHeadRow.innerHTML = `<th class="col-head">CATEGORY / WEEK</th>${weekHeaders}<th class="num total-col">${lastDayHeaderText}</th>`;
+      }
 
       const dailyRates = {
         pm: 841.3,
@@ -2328,24 +2470,58 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         me: 138.41,
         hl: 86.37
       };
-      
+
       const overheadsDaily = 2540; // Updated overheads rate
       const rigRental = 2500; // Updated rig rate
       const vbRental = 3250; // Updated vibro+powerpack rate
       const craneRental = 1100;
+
+      const lastDayValues = {
+        pm: lastDayCounts.pm * dailyRates.pm,
+        se: lastDayCounts.se * dailyRates.se,
+        foreman: lastDayCounts.foreman * dailyRates.foreman,
+        op: lastDayCounts.op * dailyRates.op,
+        vb: lastDayCounts.vb * dailyRates.vb,
+        rig: lastDayCounts.rig * dailyRates.rig,
+        we: lastDayCounts.we * dailyRates.we,
+        me: lastDayCounts.me * dailyRates.me,
+        hl: lastDayCounts.hl * dailyRates.hl,
+        r_rig: lastDayDateKey ? rigRental : 0,
+        r_vb: lastDayDateKey ? vbRental : 0,
+        r_crane: lastDayDateKey ? craneRental : 0
+      };
+      lastDayValues.salaries = lastDayValues.pm + lastDayValues.se + lastDayValues.foreman + lastDayValues.op + lastDayValues.vb + lastDayValues.rig + lastDayValues.we + lastDayValues.me + lastDayValues.hl;
+      lastDayValues.rental = lastDayValues.r_rig + lastDayValues.r_vb + lastDayValues.r_crane;
+      lastDayValues.direct = lastDayValues.salaries + lastDayValues.rental;
+      lastDayValues.overheads = lastDayDateKey ? overheadsDaily : 0;
+      lastDayValues.total = lastDayValues.direct + lastDayValues.overheads;
+
+      const lastDayLm = lastDayDateKey
+        ? executed
+            .filter(r => getOverviewDateKey(r) === lastDayDateKey)
+            .reduce((sum, r) => sum + (Number(r.asbuilt_depth) || Number(r.design_depth) || 0), 0)
+        : 0;
+      const lastDayCumLm = lastDayDateKey
+        ? executed
+            .filter(r => getOverviewDateKey(r) <= lastDayDateKey)
+            .reduce((sum, r) => sum + (Number(r.asbuilt_depth) || Number(r.design_depth) || 0), 0)
+        : 0;
+      lastDayValues.lm = lastDayLm;
+      lastDayValues.cumLm = lastDayCumLm;
+      lastDayValues.cplm = lastDayLm > 0 ? (lastDayValues.total / lastDayLm) : 0;
       
-      const getEquipDays = (w, eq) => {
+      const getEquipDays = (w, eq, fallbackDays = 6) => {
         if (w === 10) return 1;
         if (eq === 'rig' || eq === 'crane') {
            if (w === 12) return 2; // Rig/Crane offline starting Wed Mar 18
            if (w === 13) return 3; // Rig/Crane offline until Wed Mar 25
-           return 6;
+           return fallbackDays;
         }
         if (eq === 'vb') {
           if (w === 12) return 2; // Vibrator offline Mar 18-21, 2026 (4 days)
-          return 6;
+          return fallbackDays;
         }
-        return 6;
+        return fallbackDays;
       };
 
       const sums = { salaries: 0, rental: 0, direct: 0, overheads: 0, total: 0, lm: 0, r_crane: 0 };
@@ -2353,23 +2529,36 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       let runningCumLm = 0;
       const weeklyData = weeks.map(w => {
         const d = data[w];
-        const days = w === 10 ? 1 : 6; // March 7th start = 1 working day in W10
+        const days = Number.isFinite(d?.daysFromManpower) ? d.daysFromManpower : (w === 10 ? 1 : 6);
+        const isDynamicManpowerWeek = d?.source === 'manpower' && Array.isArray(d?.dailyRows) && d.dailyRows.length > 0;
+
+        const calcRoleCost = (roleKey, rate) => {
+          if (!isDynamicManpowerWeek) {
+            return (Number(d?.[roleKey]) || 0) * rate * days;
+          }
+          let roleTotal = 0;
+          d.dailyRows.forEach(dayRow => {
+            const count = Number(dayRow?.[roleKey]) || 0;
+            roleTotal += count * rate;
+          });
+          return roleTotal;
+        };
         
-        const pm = d.pm * dailyRates.pm * days;
-        const se = d.se * dailyRates.se * days;
-        const foreman = d.foreman * dailyRates.foreman * days;
-        const op = d.op * dailyRates.op * days;
-        const vb = d.vb * dailyRates.vb * days;
-        const rig = d.rig * dailyRates.rig * days;
-        const we = d.we * dailyRates.we * days;
-        const me = d.me * dailyRates.me * days;
-        const hl = d.hl * dailyRates.hl * days;
+        const pm = calcRoleCost('pm', dailyRates.pm);
+        const se = calcRoleCost('se', dailyRates.se);
+        const foreman = calcRoleCost('foreman', dailyRates.foreman);
+        const op = calcRoleCost('op', dailyRates.op);
+        const vb = calcRoleCost('vb', dailyRates.vb);
+        const rig = calcRoleCost('rig', dailyRates.rig);
+        const we = calcRoleCost('we', dailyRates.we);
+        const me = calcRoleCost('me', dailyRates.me);
+        const hl = calcRoleCost('hl', dailyRates.hl);
 
         const salaries = pm + se + foreman + op + vb + rig + we + me + hl;
         
-        const r_rig = 1 * rigRental * getEquipDays(w, 'rig');
-        const r_vb = 1 * vbRental * getEquipDays(w, 'vb');
-        const r_crane = 1 * craneRental * getEquipDays(w, 'crane');
+        const r_rig = 1 * rigRental * getEquipDays(w, 'rig', days);
+        const r_vb = 1 * vbRental * getEquipDays(w, 'vb', days);
+        const r_crane = 1 * craneRental * getEquipDays(w, 'crane', days);
         const rental = r_rig + r_vb + r_crane;
 
         const direct = salaries + rental;
@@ -2472,9 +2661,9 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           return;
         }
         let totalVal = row.key === 'cplm'
-          ? (sums.lm > 0 ? sums.total / sums.lm : 0)
-          : sums[row.key];
-        if (row.key === 'cumLm') totalVal = sums.lm;
+          ? lastDayValues.cplm
+          : lastDayValues[row.key];
+        if (row.key === 'cumLm') totalVal = null;
 
         const baseClass = row.totalRow ? 'total-row' : (row.groupHead ? 'group-head' : (row.targetPivot ? `pivot-child pivot-${row.targetPivot}` : 'group-sub'));
         const cssClass = `${baseClass} row-${row.key}`;
@@ -2524,7 +2713,32 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           html += `<td class="num">${formatCost(wd[row.key], row.key === 'lm')}</td>`;
         });
 
-        html += `<td class="num total-col">${formatCost(totalVal, row.key === 'lm')}</td>`;
+        if (row.targetPivot) {
+          let lastDayCount = 0;
+          if (row.targetPivot === 'salaries') {
+            lastDayCount = Number(lastDayCounts[row.key]) || 0;
+          } else if (row.key === 'r_rig' || row.key === 'r_vb' || row.key === 'r_crane') {
+            lastDayCount = lastDayDateKey ? 1 : 0;
+          }
+
+          const lastDayValue = Number(lastDayValues[row.key]) || 0;
+          if (lastDayCount > 0 || lastDayValue > 0) {
+            html += `<td class="num total-col cost-detail-cell">
+              <div class="cost-detail-value">${formatCost(lastDayValue)} AED</div>
+              <div class="cost-detail-meta">
+                <span class="cost-detail-count">${lastDayCount} Nos</span>
+              </div>
+            </td>`;
+          } else {
+            html += `<td class="num total-col">Ã¢â‚¬â€</td>`;
+          }
+        } else {
+          if (row.key === 'cumLm') {
+            html += `<td class="num total-col"></td>`;
+          } else {
+            html += `<td class="num total-col">${formatCost(totalVal, row.key === 'lm')}</td>`;
+          }
+        }
         html += `</tr>`;
       });
       if (els.costTableBody) els.costTableBody.innerHTML = html;
@@ -2766,6 +2980,201 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       }
     }
 
+    function getManpowerCount(row, keys) {
+      for (const key of keys) {
+        const raw = row?.[key];
+        if (raw === undefined || raw === null || raw === '') continue;
+        const n = Number(raw);
+        if (Number.isFinite(n)) return n;
+      }
+      return 0;
+    }
+
+    function getFilteredManpowerRows(project) {
+      const targetProject = normalizeText(project || selectedProject || DEFAULT_PROJECT);
+      const filtered = manpowerRows.filter(row => {
+        const projectMatch = normalizeText(row?.project) === targetProject;
+        const plotMatch = isAllPlotsValue(selectedPlot) || normalizeText(row?.plot) === normalizeText(selectedPlot);
+        return projectMatch && plotMatch;
+      });
+
+      const latestByDate = new Map();
+      filtered.forEach(row => {
+        const dateKey = normalizeDateString(row?.date);
+        if (!dateKey) return;
+        latestByDate.set(dateKey, row);
+      });
+
+      const rows = Array.from(latestByDate.entries())
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([dateKey, row]) => {
+          const item = {
+            date: dateKey,
+            pm: getManpowerCount(row, ['projectmanager', 'project manager']),
+            se: getManpowerCount(row, ['siteengineer', 'site engineer', 'siteenginner']),
+            foreman: getManpowerCount(row, ['foreman']),
+            op: getManpowerCount(row, ['operator', 'operators']),
+            vb: getManpowerCount(row, ['vibro operator', 'vibrooperator', 'vibro_operator']),
+            rig: getManpowerCount(row, ['riggers', 'rigger']),
+            we: getManpowerCount(row, ['welder', 'welders']),
+            me: getManpowerCount(row, ['mechanic', 'mechanics']),
+            hl: getManpowerCount(row, ['helpers', 'helper'])
+          };
+          item.total = item.pm + item.se + item.foreman + item.op + item.vb + item.rig + item.we + item.me + item.hl;
+          return item;
+        });
+
+      return rows;
+    }
+
+    function renderManpowerHistogram(rows) {
+      const svg = els.manpowerHistSvg;
+      if (!svg) return;
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      if (!rows.length) {
+        const empty = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        empty.setAttribute('x', '500');
+        empty.setAttribute('y', '160');
+        empty.setAttribute('text-anchor', 'middle');
+        empty.setAttribute('fill', 'rgba(244,247,251,0.62)');
+        empty.setAttribute('font-size', '14');
+        empty.setAttribute('font-weight', '700');
+        empty.textContent = 'No manpower data available';
+        svg.appendChild(empty);
+        return;
+      }
+
+      const chartW = 1000;
+      const chartH = 320;
+      const left = 52;
+      const right = 18;
+      const top = 16;
+      const bottom = 62;
+      const innerH = chartH - top - bottom;
+      const stepX = (chartW - left - right) / Math.max(rows.length, 1);
+      const barW = Math.max(16, Math.min(40, stepX * 0.5));
+      const maxVal = Math.max(...rows.map(r => r.total), 1);
+      const scaleY = innerH / maxVal;
+      svg.setAttribute('viewBox', `0 0 ${chartW} ${chartH}`);
+
+      let tooltipEl = document.getElementById('manpowerTooltip');
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'manpowerTooltip';
+        tooltipEl.className = 'chart-tooltip';
+        tooltipEl.style.position = 'fixed';
+        document.body.appendChild(tooltipEl);
+      }
+
+      const showTooltip = (evt, row) => {
+        tooltipEl.innerHTML = `
+          <div class="tooltip-title">${formatDateFullLabel(row.date)}</div>
+          <div class="tooltip-row"><span>PM</span><strong>${row.pm}</strong></div>
+          <div class="tooltip-row"><span>Engineers</span><strong>${row.se}</strong></div>
+          <div class="tooltip-row"><span>Foreman</span><strong>${row.foreman}</strong></div>
+          <div class="tooltip-row"><span>Operator</span><strong>${row.op}</strong></div>
+          <div class="tooltip-row"><span>Vibro Op.</span><strong>${row.vb}</strong></div>
+          <div class="tooltip-row"><span>Riggers</span><strong>${row.rig}</strong></div>
+          <div class="tooltip-row"><span>Welders</span><strong>${row.we}</strong></div>
+          <div class="tooltip-row"><span>Mechanic</span><strong>${row.me}</strong></div>
+          <div class="tooltip-row"><span>Helpers</span><strong>${row.hl}</strong></div>
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:8px 0;">
+          <div class="tooltip-row"><span>Total</span><strong>${row.total}</strong></div>
+        `;
+        tooltipEl.classList.add('visible');
+        const x = Math.min(window.innerWidth - 260, evt.clientX + 14);
+        const y = Math.min(window.innerHeight - 220, evt.clientY + 14);
+        tooltipEl.style.left = `${Math.max(8, x)}px`;
+        tooltipEl.style.top = `${Math.max(8, y)}px`;
+      };
+
+      const hideTooltip = () => {
+        tooltipEl.classList.remove('visible');
+      };
+
+      for (let i = 0; i < 4; i += 1) {
+        const y = top + (innerH / 3) * i;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(left));
+        line.setAttribute('x2', String(chartW - right));
+        line.setAttribute('y1', String(y));
+        line.setAttribute('y2', String(y));
+        line.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+      }
+
+      rows.slice().reverse().forEach((row, idx) => {
+        const x = left + stepX * idx + stepX / 2;
+        const h = row.total * scaleY;
+        const y = chartH - bottom - h;
+
+        const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bar.setAttribute('x', String(x - barW / 2));
+        bar.setAttribute('y', String(y));
+        bar.setAttribute('width', String(barW));
+        bar.setAttribute('height', String(h));
+        bar.setAttribute('rx', '4');
+        bar.setAttribute('fill', 'rgba(142,240,191,0.86)');
+        bar.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+        bar.setAttribute('stroke-width', '1');
+        bar.addEventListener('mousemove', evt => showTooltip(evt, row));
+        bar.addEventListener('mouseleave', hideTooltip);
+        svg.appendChild(bar);
+
+        const val = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        val.setAttribute('x', String(x));
+        val.setAttribute('y', String(Math.max(y - 6, 12)));
+        val.setAttribute('text-anchor', 'middle');
+        val.setAttribute('fill', 'rgba(244,247,251,0.92)');
+        val.setAttribute('font-size', '16');
+        val.setAttribute('font-weight', '800');
+        val.textContent = String(row.total);
+        svg.appendChild(val);
+
+        const dateLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        dateLabel.setAttribute('x', String(x));
+        dateLabel.setAttribute('y', String(chartH - 18));
+        dateLabel.setAttribute('text-anchor', 'middle');
+        dateLabel.setAttribute('fill', 'rgba(244,247,251,0.72)');
+        dateLabel.setAttribute('font-size', '13');
+        dateLabel.setAttribute('font-weight', '700');
+        dateLabel.textContent = formatShortDateLabel(row.date);
+        svg.appendChild(dateLabel);
+      });
+
+      svg.onmouseleave = hideTooltip;
+    }
+
+    function renderManpowerPage(project) {
+      const rows = getFilteredManpowerRows(project);
+
+      if (els.manpowerTableBody) {
+        if (!rows.length) {
+          els.manpowerTableBody.innerHTML = '<tr><td colspan="11" class="manpower-empty">No manpower data available for current scope.</td></tr>';
+        } else {
+          els.manpowerTableBody.innerHTML = rows.map(row => `
+            <tr>
+              <td>${formatDateFullLabel(row.date)}</td>
+              <td class="num">${row.pm}</td>
+              <td class="num">${row.se}</td>
+              <td class="num">${row.foreman}</td>
+              <td class="num">${row.op}</td>
+              <td class="num">${row.vb}</td>
+              <td class="num">${row.rig}</td>
+              <td class="num">${row.we}</td>
+              <td class="num">${row.me}</td>
+              <td class="num">${row.hl}</td>
+              <td class="num total-col">${row.total}</td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      renderManpowerHistogram(rows);
+    }
+
     async function signInWithDirectory(loginValue, passwordValue) {
       const matchedUser = findUserRecord(loginValue);
       if (!matchedUser) {
@@ -2863,6 +3272,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
             syncTimelinePresetButtons();
             renderDashboard(selectedProject);
             if (activePage === 'production') renderProductionPage(selectedProject, true);
+            if (activePage === 'manpower') renderManpowerPage(selectedProject);
             if (activePage === 'timeline') renderTimelinePage(selectedProject, true);
             if (activePage === 'cost') renderCostPage(selectedProject, true);
             broadcastAuthContext();
@@ -2911,6 +3321,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           if (label === 'Overview') btn.addEventListener('click', () => setActivePage('overview'));
           if (label === 'Map') btn.addEventListener('click', () => setActivePage('map'));
           if (label === 'Production') btn.addEventListener('click', () => setActivePage('production'));
+          if (label === 'Manpower') btn.addEventListener('click', () => setActivePage('manpower'));
           if (label === 'Timeline') btn.addEventListener('click', () => setActivePage('timeline'));
           if (label === 'Cost') btn.addEventListener('click', () => setActivePage('cost'));
         });
