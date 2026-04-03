@@ -140,6 +140,11 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       return !normalized || normalized === '-' || normalized === '—' || normalized === 'all' || normalized === 'all plots' || normalized === 'all plot';
     }
 
+    function isAllProjectsValue(value) {
+      const normalized = normalizeText(value).toLowerCase();
+      return !normalized || normalized === 'all';
+    }
+
     function normalizeDateString(value) {
       const raw = String(value || '').trim();
       if (!raw) return '';
@@ -221,7 +226,8 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
     }
 
     function isManagerUser() {
-      return normalizeText(currentUser?.type).toLowerCase() === 'manager';
+      const role = normalizeText(currentUser?.type).toLowerCase();
+      return role === 'manager' || isAllProjectsValue(currentUser?.project);
     }
 
     function canAccessPage(page) {
@@ -334,7 +340,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
 
     function applyUserSession(user) {
       currentUser = user;
-      selectedProject = user?.project || DEFAULT_PROJECT;
+      selectedProject = isAllProjectsValue(user?.project) ? DEFAULT_PROJECT : (user?.project || DEFAULT_PROJECT);
       selectedPlot = user?.plot || '';
       timelineState.pile = 'all';
       updateUserContextUi();
