@@ -509,8 +509,11 @@
     function getActiveScope() {
       const stored = getStoredAuthContext();
       if (!stored?.project && !stored?.selectedProject) return null;
+      const selectedProject = normalizeText(stored.selectedProject);
+      const userProject = normalizeText(stored.project);
+      const effectiveProject = selectedProject || (userProject.toLowerCase() === 'all' ? DEFAULT_PROJECT : userProject) || DEFAULT_PROJECT;
       return {
-        project: normalizeText(stored.selectedProject || stored.project) || DEFAULT_PROJECT,
+        project: effectiveProject,
         plot: normalizeText(stored.selectedPlot || stored.plot)
       };
     }
@@ -751,6 +754,37 @@
         return acc;
       }, [0, 0]);
       return [sum[0] / records.length, sum[1] / records.length];
+    }
+
+    function getPileBounds(records) {
+      if (!records.length) return null;
+      let minLng = Infinity;
+      let maxLng = -Infinity;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+
+      records.forEach(rec => {
+        const lng = Number(rec?.lngLat?.[0]);
+        const lat = Number(rec?.lngLat?.[1]);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      });
+
+      if (!Number.isFinite(minLng) || !Number.isFinite(maxLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLat)) {
+        return null;
+      }
+
+      // Add small geographic padding so piles are not touching viewport edges.
+      const lngPad = Math.max((maxLng - minLng) * 0.08, 0.0002);
+      const latPad = Math.max((maxLat - minLat) * 0.08, 0.0002);
+
+      return new mapboxgl.LngLatBounds(
+        [minLng - lngPad, minLat - latPad],
+        [maxLng + lngPad, maxLat + latPad]
+      );
     }
 
     function todayKey() {
@@ -1001,6 +1035,20 @@
       const is3D = mode === '3d';
       planViewBtn.classList.toggle('active', !is3D);
       view3DBtn.classList.toggle('active', is3D);
+      const projectBounds = getPileBounds(pileRecords);
+
+      if (projectBounds) {
+        map.fitBounds(projectBounds, {
+          padding: { top: 48, right: 48, bottom: 48, left: 48 },
+          maxZoom: is3D ? 19.1 : 19,
+          pitch: is3D ? 58 : 0,
+          bearing: is3D ? 18 : 0,
+          duration: options.instant ? 0 : 900,
+          essential: true
+        });
+        return;
+      }
+
       map.easeTo({
         center: SITE_CENTER,
         zoom: is3D ? 19.2 : 19,
@@ -1466,6 +1514,20 @@
     window.addEventListener('message', event => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'AUTH_CONTEXT_UPDATED') {
+        const payload = event.data?.payload;
+        if (payload && typeof payload === 'object') {
+          try {
+            const storedRaw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+            const stored = storedRaw ? JSON.parse(storedRaw) : {};
+            const merged = {
+              ...stored,
+              ...payload,
+              selectedProject: payload.project || stored.selectedProject || stored.project,
+              selectedPlot: payload.plot || stored.selectedPlot || stored.plot
+            };
+            window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(merged));
+          } catch (err) {}
+        }
         window.location.reload();
       }
     });

@@ -2323,6 +2323,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
     function renderCostPage(project, forceAnimate = false) {
       if (!els.pageCost) return;
       const rows = getRowsForProject(project);
+      const isTitaniaCostTemplateProject = normalizeText(project).toLowerCase() === 'titania';
 
       const executed = getExecutedRows(rows).filter(r => getOverviewDateKey(r));
       const cwLmMap = new Map();
@@ -2337,13 +2338,15 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         cwLmMap.set(cwNum, (cwLmMap.get(cwNum) || 0) + asbuilt);
       });
 
-      const baseWeeks = [10, 11, 12, 13];
-      const data = {
-        10: { pm: 1, se: 2, foreman: 2, op: 3, vb: 1, rig: 5, hl: 7, we: 1, me: 1, rigs: 1 },
-        11: { pm: 1, se: 2, foreman: 3, op: 6, vb: 2, rig: 7, hl: 7, we: 2, me: 1, rigs: 2 },
-        12: { pm: 1, se: 2, foreman: 3, op: 6, vb: 2, rig: 9, hl: 11, we: 1, me: 1, rigs: 2 },
-        13: { pm: 1, se: 3, foreman: 3, op: 6, vb: 2, rig: 9, hl: 11, we: 2, me: 1, rigs: 2 }
-      };
+      const baseWeeks = isTitaniaCostTemplateProject ? [10, 11, 12, 13] : [];
+      const data = isTitaniaCostTemplateProject
+        ? {
+            10: { pm: 1, se: 2, foreman: 2, op: 3, vb: 1, rig: 5, hl: 7, we: 1, me: 1, rigs: 1 },
+            11: { pm: 1, se: 2, foreman: 3, op: 6, vb: 2, rig: 7, hl: 7, we: 2, me: 1, rigs: 2 },
+            12: { pm: 1, se: 2, foreman: 3, op: 6, vb: 2, rig: 9, hl: 11, we: 1, me: 1, rigs: 2 },
+            13: { pm: 1, se: 3, foreman: 3, op: 6, vb: 2, rig: 9, hl: 11, we: 2, me: 1, rigs: 2 }
+          }
+        : {};
 
       function getManpowerValue(row, keys) {
         for (const key of keys) {
@@ -2395,6 +2398,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         hl: getManpowerValue(lastDayManpower, ['helpers', 'helper'])
       } : { pm: 0, se: 0, foreman: 0, op: 0, vb: 0, rig: 0, we: 0, me: 0, hl: 0 };
 
+      const minDynamicWeek = isTitaniaCostTemplateProject ? 14 : 1;
       Array.from(latestDailyManpower.values()).forEach(row => {
         const dateKey = normalizeDateString(row?.date);
         if (!dateKey) return;
@@ -2402,7 +2406,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         try {
           cwNum = parseInt(String(getCW(dateKey)).replace(/\D/g, ''), 10);
         } catch (e) {}
-        if (!Number.isFinite(cwNum) || cwNum < 14) return;
+        if (!Number.isFinite(cwNum) || cwNum < minDynamicWeek) return;
 
         const bucket = manpowerWeekly.get(cwNum) || { dailyRows: [] };
         bucket.dailyRows.push({
@@ -2511,15 +2515,17 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       lastDayValues.cplm = lastDayLm > 0 ? (lastDayValues.total / lastDayLm) : 0;
       
       const getEquipDays = (w, eq, fallbackDays = 6) => {
-        if (w === 10) return 1;
-        if (eq === 'rig' || eq === 'crane') {
-           if (w === 12) return 2; // Rig/Crane offline starting Wed Mar 18
-           if (w === 13) return 3; // Rig/Crane offline until Wed Mar 25
-           return fallbackDays;
-        }
-        if (eq === 'vb') {
-          if (w === 12) return 2; // Vibrator offline Mar 18-21, 2026 (4 days)
-          return fallbackDays;
+        if (isTitaniaCostTemplateProject) {
+          if (w === 10) return 1;
+          if (eq === 'rig' || eq === 'crane') {
+             if (w === 12) return 2; // Rig/Crane offline starting Wed Mar 18
+             if (w === 13) return 3; // Rig/Crane offline until Wed Mar 25
+             return fallbackDays;
+          }
+          if (eq === 'vb') {
+            if (w === 12) return 2; // Vibrator offline Mar 18-21, 2026 (4 days)
+            return fallbackDays;
+          }
         }
         return fallbackDays;
       };
@@ -3268,6 +3274,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
             if (!isManagerUser()) return;
             selectedProject = e.target.value;
             timelineState.pile = 'all';
+            persistScopedSession();
             updateTimelinePileList(selectedProject);
             syncTimelinePresetButtons();
             renderDashboard(selectedProject);
