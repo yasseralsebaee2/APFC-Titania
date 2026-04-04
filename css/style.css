@@ -69,6 +69,7 @@ body.auth-locked .auth-shell {
 }
 
 .auth-card {
+  position: relative;
   width: min(460px, 100%);
   padding: 28px;
   border-radius: 24px;
@@ -175,6 +176,79 @@ body.auth-locked .auth-shell {
 .auth-submit:disabled {
   opacity: 0.72;
   cursor: wait;
+}
+
+.auth-secondary-btn {
+  height: 44px;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(244,247,251,0.9);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.auth-secondary-btn:hover {
+  border-color: rgba(142,240,191,0.45);
+  background: rgba(255,255,255,0.08);
+}
+
+.auth-request-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(4, 7, 10, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 5;
+}
+
+.auth-request-overlay[hidden] {
+  display: none !important;
+}
+
+.auth-request-panel {
+  width: 100%;
+  max-width: 380px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(9,12,16,0.96);
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 18px 42px rgba(0,0,0,0.42);
+}
+
+.auth-request-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(142,240,191,0.92);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-request-error {
+  min-height: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff9e9e;
+}
+
+.auth-request-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.auth-submit-small {
+  height: 44px;
+  font-size: 12px;
 }
 
 .auth-note {

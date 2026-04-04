@@ -1,6 +1,7 @@
 const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-pile-asbuilt.json_';
     const USERS_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-users.json_';
     const MANPOWER_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc_manpower.json_';
+    const ACCESS_REQUEST_EMAIL = 'yasser.alsebaee@granadaeurope.com';
     const DEFAULT_PROJECT = 'Titania';
     const AUTH_STORAGE_KEY = 'apfcDashboardAuth';
 
@@ -10,6 +11,13 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       authLoginInput: document.getElementById('authLoginInput'),
       authPasswordInput: document.getElementById('authPasswordInput'),
       authSubmitBtn: document.getElementById('authSubmitBtn'),
+      authRequestAccessBtn: document.getElementById('authRequestAccessBtn'),
+      authRequestPanel: document.getElementById('authRequestPanel'),
+      authRequestNameInput: document.getElementById('authRequestNameInput'),
+      authRequestEmailInput: document.getElementById('authRequestEmailInput'),
+      authRequestError: document.getElementById('authRequestError'),
+      authRequestCancelBtn: document.getElementById('authRequestCancelBtn'),
+      authRequestSendBtn: document.getElementById('authRequestSendBtn'),
       authError: document.getElementById('authError'),
       signOutBtn: document.getElementById('signOutBtn'),
       projectSelector: document.getElementById('projectSelector'),
@@ -294,6 +302,66 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       if (isLocked) {
         els.dataSourceChip.textContent = 'Sign In Required';
       }
+    }
+
+    function toggleRequestAccessPanel(isOpen) {
+      if (!els.authRequestPanel) return;
+      els.authRequestPanel.hidden = !isOpen;
+      if (isOpen && els.authRequestNameInput) {
+        els.authRequestNameInput.focus();
+      }
+    }
+
+    function setRequestAccessError(message = '') {
+      if (!els.authRequestError) return;
+      els.authRequestError.textContent = message || '';
+    }
+
+    function validateEmail(value) {
+      const email = normalizeText(value);
+      if (!email) return false;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function submitAccessRequest() {
+      const requestName = normalizeText(els.authRequestNameInput?.value);
+      const requestEmail = normalizeText(els.authRequestEmailInput?.value);
+      setRequestAccessError('');
+
+      if (!requestName) {
+        setRequestAccessError('Please enter your name.');
+        els.authRequestNameInput?.focus();
+        return;
+      }
+      if (!requestEmail) {
+        setRequestAccessError('Please enter your email address.');
+        els.authRequestEmailInput?.focus();
+        return;
+      }
+      if (!validateEmail(requestEmail)) {
+        setRequestAccessError('Please enter a valid email address.');
+        els.authRequestEmailInput?.focus();
+        return;
+      }
+
+      const subject = `APFC Dashboard Access Request - ${requestName}`;
+      const bodyLines = [
+        'Hello,',
+        '',
+        'Please grant me access to APFC Project Dashboard.',
+        '',
+        `Name: ${requestName}`,
+        `Email: ${requestEmail}`,
+        '',
+        'Thank you.'
+      ];
+      const mailtoUrl = `mailto:${encodeURIComponent(ACCESS_REQUEST_EMAIL)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+      window.location.href = mailtoUrl;
+      setAuthLocked(true, 'Request draft opened in your email app. Please send it.');
+      toggleRequestAccessPanel(false);
+      setRequestAccessError('');
+      if (els.authRequestNameInput) els.authRequestNameInput.value = '';
+      if (els.authRequestEmailInput) els.authRequestEmailInput.value = '';
     }
 
     async function loadUsersDirectory() {
@@ -3233,6 +3301,10 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       selectedPlot = '';
       updateUserContextUi();
       setAuthLocked(true);
+      toggleRequestAccessPanel(false);
+      setRequestAccessError('');
+      if (els.authRequestNameInput) els.authRequestNameInput.value = '';
+      if (els.authRequestEmailInput) els.authRequestEmailInput.value = '';
     }
 
     async function submitSignIn() {
@@ -3330,11 +3402,36 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           submitSignIn();
         });
 
+        els.authRequestAccessBtn?.addEventListener('click', () => {
+          const shouldOpen = !!els.authRequestPanel?.hidden;
+          toggleRequestAccessPanel(shouldOpen);
+          if (shouldOpen) setRequestAccessError('');
+          if (!shouldOpen && els.authError) els.authError.textContent = '';
+        });
+
+        els.authRequestPanel?.addEventListener('click', evt => {
+          if (evt.target === els.authRequestPanel) toggleRequestAccessPanel(false);
+        });
+
+        els.authRequestCancelBtn?.addEventListener('click', () => {
+          toggleRequestAccessPanel(false);
+          setRequestAccessError('');
+          if (els.authError) els.authError.textContent = '';
+        });
+
+        els.authRequestSendBtn?.addEventListener('click', () => {
+          submitAccessRequest();
+        });
+
         els.signOutBtn?.addEventListener('click', () => {
           applyUserSession(null);
           setAuthLocked(true);
           broadcastAuthContext();
           if (els.authPasswordInput) els.authPasswordInput.value = '';
+          if (els.authRequestNameInput) els.authRequestNameInput.value = '';
+          if (els.authRequestEmailInput) els.authRequestEmailInput.value = '';
+          setRequestAccessError('');
+          toggleRequestAccessPanel(false);
           if (els.authLoginInput) {
             els.authLoginInput.value = '';
             els.authLoginInput.focus();

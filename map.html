@@ -721,10 +721,11 @@
       });
     }
     function getPileColor(row) {
-      return isExecutedRow(row) ? 0x50C878 : 0xF5F7FA;
+      return isExecutedRow(row) ? 0x00E56A : 0xE8EDF3;
     }
     function getBaseOpacityForRecord(record) {
-      return allBaseOpacity;
+      if (record?.executed) return Math.min(0.95, allBaseOpacity + 0.20);
+      return Math.max(0.08, allBaseOpacity - 0.06);
     }
     function getNormalOpacity(record) {
       return Math.max(0.05, getBaseOpacityForRecord(record));
@@ -1112,8 +1113,13 @@
         const isHovered = record.id === pileLayer.hoveredId;
         if (isSelected || isHovered) return;
         mesh.material.color.setHex(record.color);
-        mesh.material.emissive = new THREE.Color(0x000000);
-        mesh.material.emissiveIntensity = 0;
+        if (record.executed) {
+          mesh.material.emissive = new THREE.Color(0x0A8A4A);
+          mesh.material.emissiveIntensity = 0.24;
+        } else {
+          mesh.material.emissive = new THREE.Color(0x000000);
+          mesh.material.emissiveIntensity = 0;
+        }
         mesh.material.opacity = getNormalOpacity(record);
       });
       if (pileLayer.map) pileLayer.map.triggerRepaint();
@@ -1293,11 +1299,11 @@
           const isSelected = record.id === recordId;
           const isExecuted = record.executed;
           if (isSelected) {
-            const selectedColor = isExecuted ? 0x6FE3A3 : 0xE6EBF0;
-            const emissiveColor = isExecuted ? 0x1F8F6A : 0x9FB6C6;
+            const selectedColor = isExecuted ? 0x2AF58E : 0xE6EBF0;
+            const emissiveColor = isExecuted ? 0x0BAA58 : 0x9FB6C6;
             mesh.material.color.setHex(selectedColor);
             mesh.material.emissive = new THREE.Color(emissiveColor);
-            mesh.material.emissiveIntensity = 0.75;
+            mesh.material.emissiveIntensity = 0.82;
             mesh.material.opacity = 0.85;
           } else {
             mesh.material.color.setHex(record.color);
@@ -1317,11 +1323,11 @@
           const isHovered = record.id === recordId && !isSelected;
           if (isSelected) return;
           if (isHovered) {
-            const hoverColor = record.executed ? 0x79E7AE : 0xEEF2F6;
-            const hoverEmissive = record.executed ? 0x2F9E79 : 0xAFC3D1;
+            const hoverColor = record.executed ? 0x23EB84 : 0xEEF2F6;
+            const hoverEmissive = record.executed ? 0x0F9F57 : 0xAFC3D1;
             mesh.material.color.setHex(hoverColor);
             mesh.material.emissive = new THREE.Color(hoverEmissive);
-            mesh.material.emissiveIntensity = 0.35;
+            mesh.material.emissiveIntensity = 0.44;
             mesh.material.opacity = Math.min(0.85, getNormalOpacity(record) + 0.18);
           } else {
             mesh.material.color.setHex(record.color);

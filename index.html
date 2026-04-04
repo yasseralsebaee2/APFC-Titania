@@ -33,9 +33,28 @@
           <input id="authPasswordInput" type="password" autocomplete="current-password" placeholder="Enter password" />
         </label>
         <button class="auth-submit" id="authSubmitBtn" type="submit">Sign In</button>
+        <button class="auth-secondary-btn" id="authRequestAccessBtn" type="button">Request Access</button>
         <div class="auth-note">&copy; All rights reserved APFC, BINGHATTI</div>
         <div class="auth-error" id="authError" role="alert"></div>
       </form>
+      <div class="auth-request-overlay" id="authRequestPanel" hidden>
+        <div class="auth-request-panel">
+          <div class="auth-request-title">Request Access</div>
+          <label class="auth-field">
+            <span>Name</span>
+            <input id="authRequestNameInput" type="text" autocomplete="name" placeholder="Your full name" />
+          </label>
+          <label class="auth-field">
+            <span>Email</span>
+            <input id="authRequestEmailInput" type="email" autocomplete="email" placeholder="name@company.com" />
+          </label>
+          <div class="auth-request-error" id="authRequestError" role="alert"></div>
+          <div class="auth-request-actions">
+            <button class="auth-secondary-btn" id="authRequestCancelBtn" type="button">Cancel</button>
+            <button class="auth-submit auth-submit-small" id="authRequestSendBtn" type="button">Send Request</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="app">
