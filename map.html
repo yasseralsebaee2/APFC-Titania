@@ -381,8 +381,9 @@
 
   <div class="right-controls">
     <div class="view-switcher glass-card">
-      <button class="view-btn active" id="planViewBtn" type="button">2D</button>
-      <button class="view-btn" id="view3DBtn" type="button">3D</button>
+      <button class="view-btn" id="planViewBtn" type="button">2D</button>
+      <button class="view-btn active" id="view3DBtn" type="button">3D</button>
+      <button class="view-btn active" id="satBtn" type="button">SAT</button>
     </div>
 
     <div class="visibility-card glass-card">
@@ -444,7 +445,6 @@
     <div class="tests-legend-row"><span class="tests-legend-swatch circle"></span><span>Sonic Test</span></div>
     <div class="tests-legend-row"><span class="tests-legend-swatch rectangle"></span><span>Dynamic Test</span></div>
   </div>
-
   <div id="sidePanel" class="side-panel">
     <div class="side-panel-header">
       <h3 id="panelTitle">Pile Info</h3>
@@ -468,6 +468,8 @@
 
     mapboxgl.accessToken = 'pk.eyJ1IjoieWFzc2VyYWxzZWJhZWUiLCJhIjoiY20zbHdwam12MG9wdzJwczc2aGl0eTRwZCJ9.xZgmTXWHWe73-Ad1jhkmbQ';
     const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-pile-asbuilt.json_';
+    const BASE_STYLE_URL = 'mapbox://styles/yasseralsebaee/cmmfw9dvc00b001ra2h2f5vrw';
+    const SAT_STYLE_URL = 'mapbox://styles/mapbox/standard-satellite';
     const DEFAULT_PROJECT = 'Titania';
     const AUTH_STORAGE_KEY = 'apfcDashboardAuth';
 
@@ -480,7 +482,7 @@
 
     let allBaseOpacity = 0.40;
     let isVisibilityCollapsed = true;
-    let isProgressCollapsed = false;
+    let isProgressCollapsed = true;
     let isChartCollapsed = true;
     let currentMetric = 'pileCount';
     let currentChartMode = 'daily';
@@ -527,6 +529,16 @@
       const projectMatch = normalizeText(row.project) === normalizeText(scope.project);
       const plotMatch = isAllPlotsValue(scope.plot) || normalizeText(row.plot) === normalizeText(scope.plot);
       return projectMatch && plotMatch;
+    }
+
+    function getFocusedPiles(scope) {
+      if (!scope) return allPiles;
+      const scoped = allPiles.filter(row => matchesScope(row, scope));
+      return scoped.length ? scoped : allPiles;
+    }
+
+    function getFocusedWidgetPiles() {
+      return getFocusedPiles(getActiveScope());
     }
 
     function parseNumber(value) {
@@ -687,14 +699,14 @@
     function addTestRings() {
       const sourceId = 'pile-test-rings';
       const layerId = 'pile-test-rings-line';
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
       const features = buildTestShapeFeatures(allPiles);
       if (!features.length) return;
       const data = {
         type: 'FeatureCollection',
         features
       };
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
       map.addSource(sourceId, { type: 'geojson', data });
       map.addLayer({
         id: layerId,
@@ -828,9 +840,10 @@
     }
 
     function getChartSeries(mode) {
-      if (mode === 'daily') return chartData;
+      const scopedChartData = aggregateDailyData(getFocusedWidgetPiles());
+      if (mode === 'daily') return scopedChartData;
       let piles = 0, depth = 0, qty = 0;
-      return chartData.map(d => {
+      return scopedChartData.map(d => {
         piles += Number(d.pileCount || 0);
         depth += Number(d.depth || 0);
         qty += Number(d.concreteQty || 0);
@@ -864,6 +877,7 @@
     const allOpacityValue = document.getElementById('allOpacityValue');
     const planViewBtn = document.getElementById('planViewBtn');
     const view3DBtn = document.getElementById('view3DBtn');
+    const satBtn = document.getElementById('satBtn');
     const sidePanel = document.getElementById('sidePanel');
     const panelTitle = document.getElementById('panelTitle');
     const panelBody = document.getElementById('panelBody');
@@ -895,11 +909,12 @@
     visibilityToggleBtn.addEventListener('click', () => { isVisibilityCollapsed = !isVisibilityCollapsed; applyVisibilityCollapsedState(); });
 
     function renderProgressCard() {
-      const total = allPiles.length;
-      const executed = allPiles.filter(isExecutedRow).length;
+      const scopedPiles = getFocusedWidgetPiles();
+      const total = scopedPiles.length;
+      const executed = scopedPiles.filter(isExecutedRow).length;
       const remaining = Math.max(0, total - executed);
       const percent = total ? (executed / total) * 100 : 0;
-      const latestDate = allPiles.filter(isExecutedRow).map(p => normalizeDateString(p.castingDate)).filter(Boolean).sort().slice(-1)[0] || '';
+      const latestDate = scopedPiles.filter(isExecutedRow).map(p => normalizeDateString(p.castingDate)).filter(Boolean).sort().slice(-1)[0] || '';
       const radius = 40;
       const circumference = 2 * Math.PI * radius;
       const offset = circumference * (1 - percent / 100);
@@ -1041,13 +1056,16 @@
       const is3D = mode === '3d';
       planViewBtn.classList.toggle('active', !is3D);
       view3DBtn.classList.toggle('active', is3D);
-      const projectBounds = getPileBounds(pileRecords);
+      const scope = getActiveScope();
+      const focusedRecords = buildPileRecords(getFocusedPiles(scope));
+      const projectBounds = getPileBounds(focusedRecords);
+      const focusedCenter = getPileCentroid(focusedRecords);
 
       if (projectBounds) {
         map.fitBounds(projectBounds, {
-          padding: { top: 48, right: 48, bottom: 48, left: 48 },
-          maxZoom: is3D ? 19.1 : 19,
-          pitch: is3D ? 58 : 0,
+          padding: { top: 40, right: 40, bottom: 40, left: 40 },
+          maxZoom: is3D ? 18.1 : 17.4,
+          pitch: is3D ? 56 : 0,
           bearing: is3D ? 18 : 0,
           duration: options.instant ? 0 : 900,
           essential: true
@@ -1056,9 +1074,9 @@
       }
 
       map.easeTo({
-        center: SITE_CENTER,
-        zoom: is3D ? 19.2 : 19,
-        pitch: is3D ? 58 : 0,
+        center: focusedCenter,
+        zoom: is3D ? 17.9 : 17.1,
+        pitch: is3D ? 56 : 0,
         bearing: is3D ? 18 : 0,
         duration: options.instant ? 0 : 900,
         essential: true
@@ -1066,6 +1084,205 @@
     }
     planViewBtn.addEventListener('click', () => setMapView('2d'));
     view3DBtn.addEventListener('click', () => setMapView('3d'));
+
+    let isSatellite = true;
+
+    function normalizeMapScene() {
+      try { if (map.getTerrain()) map.setTerrain(null); } catch (err) {}
+      try { map.setFog(null); } catch (err) {}
+    }
+
+    function applyBasemapConfig() {
+      try {
+        if (isSatellite) {
+          map.setConfigProperty('basemap', 'show3dObjects', true);
+          map.setConfigProperty('basemap', 'show3dBuildings', true);
+          map.setConfigProperty('basemap', 'show3dLandmarks', true);
+          map.setConfigProperty('basemap', 'show3dFacades', true);
+          map.setConfigProperty('basemap', 'showRoadsAndTransit', false);
+          map.setConfigProperty('basemap', 'showPedestrianRoads', false);
+          map.setConfigProperty('basemap', 'lightPreset', 'day');
+        } else {
+          map.setConfigProperty('basemap', 'show3dObjects', true);
+          map.setConfigProperty('basemap', 'show3dBuildings', true);
+          map.setConfigProperty('basemap', 'show3dLandmarks', true);
+          map.setConfigProperty('basemap', 'show3dFacades', true);
+          map.setConfigProperty('basemap', 'lightPreset', 'day');
+        }
+      } catch (err) {}
+    }
+
+    function keepCustomLayersOnTop() {
+      if (map.getLayer('sat-native-buildings')) {
+        try {
+          const styleLayers = map.getStyle()?.layers || [];
+          const beforeLayerId = styleLayers.find(layer => layer.type === 'symbol' && layer.id !== 'sat-native-buildings')?.id;
+          map.moveLayer('sat-native-buildings', beforeLayerId);
+        } catch (err) {}
+      }
+      if (map.getLayer('threejs-piles')) {
+        try { map.moveLayer('threejs-piles'); } catch (err) {}
+      }
+    }
+
+    function ensureSatelliteNativeBuildingsLayer() {
+      if (map.getLayer('sat-native-buildings')) return;
+      if (!map.getSource('sat-buildings-src')) {
+        map.addSource('sat-buildings-src', {
+          type: 'vector',
+          url: 'mapbox://mapbox.mapbox-streets-v8'
+        });
+      }
+      try {
+        const styleLayers = map.getStyle()?.layers || [];
+        const beforeLayerId = styleLayers.find(layer => layer.type === 'symbol')?.id;
+        map.addLayer({
+          id: 'sat-native-buildings',
+          type: 'fill-extrusion',
+          source: 'sat-buildings-src',
+          'source-layer': 'building',
+          filter: ['==', ['geometry-type'], 'Polygon'],
+          minzoom: 10,
+          paint: {
+            'fill-extrusion-color': '#e7d7af',
+            'fill-extrusion-height': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10, 0,
+              13,
+              [
+                'coalesce',
+                ['to-number', ['get', 'height']],
+                ['to-number', ['get', 'render_height']],
+                ['*', ['coalesce', ['to-number', ['get', 'building:levels']], 0], 3],
+                12
+              ]
+            ],
+            'fill-extrusion-base': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10, 0,
+              13,
+              [
+                'coalesce',
+                ['to-number', ['get', 'min_height']],
+                ['*', ['coalesce', ['to-number', ['get', 'min_level']], 0], 3],
+                0
+              ]
+            ],
+            'fill-extrusion-opacity': 0.96
+          }
+        }, beforeLayerId);
+      } catch (err) {
+        console.warn('[SAT buildings] layer add failed', err);
+      }
+    }
+
+    function recreateSatelliteBuildingsLayer() {
+      try {
+        if (map.getLayer('sat-native-buildings')) map.removeLayer('sat-native-buildings');
+      } catch (err) {}
+      try {
+        if (map.getSource('sat-buildings-src')) map.removeSource('sat-buildings-src');
+      } catch (err) {}
+      ensureSatelliteNativeBuildingsLayer();
+      keepCustomLayersOnTop();
+    }
+
+    function ensureSatelliteBuildingsWithRetry(attempt = 0) {
+      if (!isSatellite) return;
+      ensureSatelliteNativeBuildingsLayer();
+      keepCustomLayersOnTop();
+      if (map.getLayer('sat-native-buildings')) return;
+      if (attempt >= 8) return;
+      window.setTimeout(() => ensureSatelliteBuildingsWithRetry(attempt + 1), 180);
+    }
+
+    function refreshOperationalWidgets() {
+      clearHtmlLabels();
+      addLabelLayer();
+      renderProgressCard();
+      renderChart(currentMetric);
+      addTestRings();
+      keepCustomLayersOnTop();
+    }
+
+    function rebuildOperationalMapLayers() {
+      normalizeMapScene();
+      applyBasemapConfig();
+      if (pileLayer && !map.getLayer(pileLayer.id)) map.addLayer(pileLayer);
+      refreshOperationalWidgets();
+      if (isSatellite) {
+        ensureSatelliteBuildingsWithRetry();
+      }
+    }
+
+/*
+      normalizeMapScene();
+      // Satellite raster — added before rings/piles so those always render on top
+      map.addSource('mapbox-satellite-overlay', {
+        type: 'raster',
+        url: 'mapbox://mapbox.satellite',
+        tileSize: 256
+      });
+      map.addLayer({
+        id: 'satellite-overlay',
+        type: 'raster',
+        source: 'mapbox-satellite-overlay',
+        layout: { visibility: 'none' },
+        paint: {
+          'raster-opacity': 0.52,
+          'raster-fade-duration': 0,
+          'raster-brightness-min': 0.08,
+          'raster-brightness-max': 0.96,
+          'raster-contrast': 0.08,
+          'raster-saturation': -0.08
+        }
+      });
+
+      // 3D buildings as custom ThreeJS layer — same pipeline as piles, always on top of raster
+      buildingLayer = new ThreeBuildingLayer('threejs-buildings');
+      map.addLayer(buildingLayer);
+      ensureSatelliteNativeBuildingsLayer();
+      keepCustomLayersOnTop();
+    }
+
+*/
+    function getPreferredViewMode() {
+      if (isSatellite) return '3d';
+      return view3DBtn.classList.contains('active') ? '3d' : '2d';
+    }
+
+    function focusCurrentProject(instant = false) {
+      const mode = getPreferredViewMode();
+      setMapView(mode, { instant });
+    }
+
+    function finalizeStyleLoad() {
+      rebuildOperationalMapLayers();
+      requestAnimationFrame(() => focusCurrentProject(true));
+      map.once('idle', () => {
+        if (isSatellite) ensureSatelliteBuildingsWithRetry();
+        else keepCustomLayersOnTop();
+        focusCurrentProject(true);
+        requestAnimationFrame(() => {
+          if (isSatellite) ensureSatelliteBuildingsWithRetry();
+          else keepCustomLayersOnTop();
+        });
+      });
+    }
+
+    satBtn.addEventListener('click', () => {
+      isSatellite = !isSatellite;
+      satBtn.classList.toggle('active', isSatellite);
+      if (isSatellite) {
+        planViewBtn.classList.remove('active');
+        view3DBtn.classList.add('active');
+      }
+      map.setStyle(isSatellite ? SAT_STYLE_URL : BASE_STYLE_URL);
+    });
 
     function makeInfoSection(title, rows) {
       const body = rows.map(([label, value]) => `
@@ -1141,7 +1358,7 @@
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/yasseralsebaee/cmmfw9dvc00b001ra2h2f5vrw',
+      style: SAT_STYLE_URL,
       center: SITE_CENTER,
       zoom: 18.7,
       pitch: 0,
@@ -1205,7 +1422,7 @@
       constructor(id) {
         this.id = id;
         this.type = 'custom';
-        this.renderingMode = '3d';
+        this.renderingMode = '2d';
         this.map = null;
         this.camera = null;
         this.scene = null;
@@ -1216,6 +1433,7 @@
         this.combinedMatrix = null;
         this.highlightedId = null;
         this.hoveredId = null;
+        this.isSatelliteMode = false;
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
         this.centerMerc = mapboxgl.MercatorCoordinate.fromLngLat(SITE_CENTER, 0);
@@ -1282,8 +1500,9 @@
           });
           const mesh = new THREE.Mesh(geometry, material);
           mesh.userData.record = record;
+          mesh.userData.originalHeight = height;
           mesh.position.set(localX, localY, -(height / 2 + 0.02));
-          record._local3d = { x: localX, y: localY, zCenter: -(height / 2 + 0.02), height, radius, topZ: -0.02 };
+          record._local3d = { x: localX, y: localY, zCenter: -(height / 2 + 0.02), height, effectiveHeight: height, radius, topZ: -0.02 };
           mesh.frustumCulled = false;
           mesh.renderOrder = 999;
           this.rootGroup.add(mesh);
@@ -1295,6 +1514,22 @@
             this.testIndicators.push(indicator);
           }
         });
+        this.applySatelliteMode(this.isSatelliteMode);
+      }
+
+      applySatelliteMode(enabled) {
+        this.isSatelliteMode = !!enabled;
+        this.meshes.forEach(mesh => {
+          const record = mesh.userData.record;
+          const originalHeight = Number(mesh.userData.originalHeight || record?._local3d?.height || 0);
+          if (!originalHeight || !record?._local3d) return;
+          const visibleHeight = originalHeight;
+          mesh.scale.z = visibleHeight / originalHeight;
+          mesh.position.z = -(visibleHeight / 2 + 0.02);
+          record._local3d.effectiveHeight = visibleHeight;
+          record._local3d.zCenter = mesh.position.z;
+        });
+        if (this.map) this.map.triggerRepaint();
       }
 
       setHighlightedPile(recordId) {
@@ -1372,7 +1607,8 @@
         for (const record of pileRecords) {
           if (!record._local3d) continue;
           const top = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x, record._local3d.y, record._local3d.topZ || -0.02));
-          const bottom = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x, record._local3d.y, -record._local3d.height));
+          const bodyHeight = Number(record._local3d.effectiveHeight || record._local3d.height || 0);
+          const bottom = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x, record._local3d.y, -bodyHeight));
           if (!top || !bottom) continue;
           const side = this.projectLocalPointToScreen(new THREE.Vector3(record._local3d.x + record._local3d.radius, record._local3d.y, record._local3d.topZ || -0.02));
           const radiusPx = side ? Math.max(6, Math.hypot(side.x - top.x, side.y - top.y)) : 8;
@@ -1393,6 +1629,198 @@
         this.combinedMatrix = m.clone().multiply(l);
         this.camera.projectionMatrix = this.combinedMatrix.clone();
         this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert();
+        this.renderer.resetState();
+        this.renderer.render(this.scene, this.camera);
+        this.map.triggerRepaint();
+      }
+    }
+
+    class ThreeBuildingLayer {
+      constructor(id) {
+        this.id = id;
+        this.type = 'custom';
+        this.renderingMode = '3d';
+        this.map = null;
+        this.camera = null;
+        this.scene = null;
+        this.renderer = null;
+        this.modelTransform = null;
+        this.centerMerc = null;
+        this._visible = false;
+        this._built = false;
+        this._loading = false;
+        this._stats = { features: 0, triangles: 0 };
+        this._lastError = '';
+        this._lastSource = '';
+      }
+
+      onAdd(map, gl) {
+        this.map = map;
+        this.camera = new THREE.Camera();
+        this.scene = new THREE.Scene();
+        const ambient = new THREE.AmbientLight(0xffffff, 1.15);
+        this.scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xfff7db, 0.9);
+        sun.position.set(80, -70, 120);
+        this.scene.add(sun);
+        const fill = new THREE.DirectionalLight(0xd9e7ff, 0.45);
+        fill.position.set(-60, 40, 90);
+        this.scene.add(fill);
+        this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
+        this.renderer.autoClear = false;
+        this.centerMerc = mapboxgl.MercatorCoordinate.fromLngLat(SITE_CENTER, 0);
+        this.modelTransform = {
+          translateX: this.centerMerc.x,
+          translateY: this.centerMerc.y,
+          translateZ: 0,
+          scale: this.centerMerc.meterInMercatorCoordinateUnits()
+        };
+      }
+
+      async _fetchGeoJson() {
+        this._lastSource = 'raw-github-url';
+        const res = await fetch(BUILDINGS_RAW_URL, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Raw URL HTTP ${res.status}`);
+        const contentType = String(res.headers.get('content-type') || '');
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (parseErr) {
+          throw new Error(`Raw URL parse failed (${contentType || 'no content-type'})`);
+        }
+      }
+
+      async loadAndBuild(onDone) {
+        if (this._built || this._loading) { if (onDone) onDone(this._built); return; }
+        this._loading = true;
+        this._lastError = '';
+        try {
+          console.log('[Buildings] fetching…');
+          const data = await this._fetchGeoJson();
+          const features = Array.isArray(data?.features)
+            ? data.features
+            : Array.isArray(data?.body)
+            ? data.body
+            : [];
+          console.log('[Buildings] features', features.length);
+          this._buildGeometry(features);
+        } catch (e) {
+          this._lastError = e && e.message ? e.message : String(e);
+          console.error('[Buildings] load error:', e);
+        }
+        this._loading = false;
+        if (onDone) onDone(this._built);
+      }
+
+      _buildGeometry(features) {
+        const cx = this.centerMerc.x;
+        const cy = this.centerMerc.y;
+        const scale = this.modelTransform.scale;
+
+        const positions = [];
+        const indices = [];
+        let usedFeatureCount = 0;
+
+        for (const feature of features) {
+          if (!feature.geometry) continue;
+          const zMin = Number((feature.properties && feature.properties.Z_Min) ?? (feature.properties && feature.properties.z_min) ?? 0) || 0;
+          const polys = feature.geometry.type === 'MultiPolygon'
+            ? feature.geometry.coordinates
+            : feature.geometry.type === 'Polygon'
+            ? [feature.geometry.coordinates]
+            : [];
+
+          for (const poly of polys) {
+            const ring = poly[0];
+            if (!ring || ring.length < 4) continue;
+            usedFeatureCount += 1;
+            const verts = ring.slice(0, -1); // drop closing vertex
+            const base = positions.length / 3;
+            for (const coord of verts) {
+              const lng = Number(coord[0]);
+              const lat = Number(coord[1]);
+              const z = coord[2] !== undefined ? Number(coord[2]) : zMin;
+              if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+              const merc = mapboxgl.MercatorCoordinate.fromLngLat([lng, lat], 0);
+              positions.push(
+                (merc.x - cx) / scale,
+                (merc.y - cy) / scale,
+                ((Number.isFinite(z) ? z : zMin) - zMin) + BUILDING_BASE_Z_M
+              );
+            }
+            const count = (positions.length / 3) - base;
+            for (let i = 1; i < count - 1; i++) {
+              indices.push(base, base + i, base + i + 1);
+            }
+          }
+        }
+
+        if (!positions.length) return;
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+          color: 0xe7d39b,
+          transparent: true,
+          opacity: 0.96,
+          side: THREE.DoubleSide,
+          depthTest: false,
+          depthWrite: false
+        }));
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 990;
+        this.scene.add(mesh);
+
+        const debugHeight = 28;
+        const debugGeometry = new THREE.CylinderGeometry(2.8, 2.8, debugHeight, 28, 1, false);
+        debugGeometry.rotateX(Math.PI / 2);
+        const debugMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff2d55,
+          transparent: true,
+          opacity: 0.98,
+          depthTest: false,
+          depthWrite: false
+        });
+        const debugMesh = new THREE.Mesh(debugGeometry, debugMaterial);
+        debugMesh.position.set(0, 0, (debugHeight / 2) + BUILDING_BASE_Z_M);
+        debugMesh.frustumCulled = false;
+        debugMesh.renderOrder = 991;
+        this.scene.add(debugMesh);
+
+        this._built = true;
+        this._stats = { features: usedFeatureCount, triangles: Math.floor(indices.length / 3) };
+        if (this.map) this.map.triggerRepaint();
+      }
+
+      getStats() {
+        return this._stats;
+      }
+
+      getLastError() {
+        return this._lastError;
+      }
+
+      getLastSource() {
+        return this._lastSource;
+      }
+
+      setVisible(visible) {
+        this._visible = visible;
+        if (this.map) this.map.triggerRepaint();
+      }
+
+      render(gl, matrix) {
+        if (!this._visible || !this._built) return;
+        const m = new THREE.Matrix4().fromArray(matrix);
+        const l = new THREE.Matrix4()
+          .makeTranslation(this.modelTransform.translateX, this.modelTransform.translateY, this.modelTransform.translateZ)
+          .scale(new THREE.Vector3(this.modelTransform.scale, this.modelTransform.scale, this.modelTransform.scale));
+        this.camera.projectionMatrix = m.clone().multiply(l);
+        this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert();
+        this.renderer.clearDepth();
         this.renderer.resetState();
         this.renderer.render(this.scene, this.camera);
         this.map.triggerRepaint();
@@ -1475,7 +1903,7 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const rawPiles = Array.isArray(data) ? data : (data.piles || []);
-      allPiles = rawPiles.filter(p => matchesScope(p, scope));
+      allPiles = rawPiles;
       pileRecords = buildPileRecords(allPiles);
       chartData = aggregateDailyData(allPiles);
       SITE_CENTER = getPileCentroid(pileRecords);
@@ -1484,16 +1912,12 @@
     }
 
     function bootstrapMapContent() {
-      renderProgressCard();
-      renderChart(currentMetric);
       applyProgressCollapsedState();
       applyChartCollapsedState();
       bindVisibilityControls();
       applyVisibilityCollapsedState();
-      addLabelLayer();
-      addTestRings();
-      if (pileLayer && !map.getLayer(pileLayer.id)) map.addLayer(pileLayer);
-      setMapView('2d', { instant: false });
+      finalizeStyleLoad();
+      map.once('idle', () => focusCurrentProject(false));
     }
 
     init().then(() => {
@@ -1514,6 +1938,9 @@
         const record = getPileRecordFromInteraction(e.point, 30);
         if (pileLayer) pileLayer.setHoverPile(record ? record.id : null);
         map.getCanvas().style.cursor = record ? 'pointer' : '';
+      });
+      map.on('style.load', () => {
+        finalizeStyleLoad();
       });
     }).catch(err => {
       console.error(err);
@@ -1547,7 +1974,11 @@
             window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(merged));
           } catch (err) {}
         }
-        window.location.reload();
+        try {
+          sidePanel.classList.remove('open');
+          setTimeout(() => focusCurrentProject(false), 40);
+        } catch (err) {}
+        return;
       }
     });
   </script>
