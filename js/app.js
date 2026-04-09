@@ -659,8 +659,19 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       return new Set(getExecutedRows(rows).map(r => normalizeText(r.machine)).filter(Boolean)).size;
     }
 
-    function getPlannedRigCountForDate(rows, dateKey) {
-      const projectKey = normalizeText(rows?.[0]?.project).toLowerCase();
+    function getOverviewRigOverride(project) {
+      const projectKey = normalizeText(project).toLowerCase();
+      if (projectKey === 'titania') {
+        return 2;
+      }
+      if (projectKey === 'vintage') {
+        return 1;
+      }
+      return null;
+    }
+
+    function getPlannedRigCountForDate(rows, dateKey, project = selectedProject) {
+      const projectKey = normalizeText(project).toLowerCase();
       if (projectKey === 'titania') {
         return dateKey >= '2026-04-03' ? 2 : 1;
       }
@@ -678,7 +689,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       return next.toISOString().slice(0, 10) > previousDay ? previousDay : next.toISOString().slice(0, 10);
     }
 
-    function buildPlannedCurve(rows, data) {
+    function buildPlannedCurve(rows, data, project = selectedProject) {
       if (!data.length) return [];
       const executedDates = getExecutedRows(rows).map(r => getOverviewDateKey(r)).filter(Boolean).sort();
       if (!executedDates.length) return [];
@@ -693,7 +704,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
         while (cursor.toISOString().slice(0, 10) <= periodEnd) {
           const key = cursor.toISOString().slice(0, 10);
           if (isWorkingDay(key)) {
-            planned += getPlannedRigCountForDate(rows, key) * 3;
+            planned += getPlannedRigCountForDate(rows, key, project) * 3;
           }
           cursor.setUTCDate(cursor.getUTCDate() + 1);
         }
@@ -807,13 +818,13 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       return Math.max(0, (b - a) / 86400000) / 30.44;
     }
 
-    function computeStats(rows) {
+    function computeStats(rows, project = selectedProject) {
       const total = rows.length;
       const executedRows = getExecutedRows(rows);
       const completed = executedRows.length;
       const remaining = Math.max(0, total - completed);
       const progress = total ? (completed / total) * 100 : 0;
-      const projectKey = normalizeText(rows?.[0]?.project).toLowerCase();
+      const projectKey = normalizeText(project).toLowerCase();
 
       const executedDates = Array.from(new Set(
         executedRows
@@ -838,8 +849,8 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       const yesterdayExecuted = aggregateDailyMetrics(rows, 'piles').find(x => x.date === previousDayKey())?.executedCount || 0;
       const latestCasting = executedRows.map(r => normalizeDateString(r.castingDate)).filter(Boolean).sort().pop() || '';
       let activeRigs = new Set(executedRows.map(r => normalizeText(r.machine)).filter(Boolean)).size;
-      if (projectKey === 'titania') activeRigs = 2;
-      if (projectKey === 'vintage') activeRigs = 1;
+      const fixedRigCount = getOverviewRigOverride(projectKey);
+      if (fixedRigCount !== null) activeRigs = fixedRigCount;
       let etaDate = '';
       let etaMonths = null;
       if (remaining > 0 && avgPilesRaw > 0) {
@@ -1428,9 +1439,9 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       while (node.firstChild) node.removeChild(node.firstChild);
     }
 
-    function renderChart(rows) {
+    function renderChart(rows, project = selectedProject) {
       const data = buildChartDataset(rows, chartMetric, chartMode);
-      const plannedData = (chartMode === 'cumulative' && chartMetric === 'piles') ? buildPlannedCurve(rows, data) : [];
+      const plannedData = (chartMode === 'cumulative' && chartMetric === 'piles') ? buildPlannedCurve(rows, data, project) : [];
       if (els.overviewSeriesLegend) {
         const showLegend = chartMode === 'cumulative' && chartMetric === 'piles' && plannedData.length > 0;
         els.overviewSeriesLegend.hidden = !showLegend;
@@ -1808,7 +1819,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
     function renderDashboard(project) {
       const rows = getRowsForProject(project);
-      const stats = computeStats(rows);
+      const stats = computeStats(rows, project);
       const avgBasisLabel = '7CD';
       els.pageSubtitle.textContent = getScopeSubtitle();
       els.kpiTotal.textContent = stats.total.toLocaleString();
@@ -1824,7 +1835,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       els.kpiCompletedMetaR.textContent = `${stats.yesterdayExecuted} yesterday`;
       els.kpiRemainingMetaR.textContent = `${(100 - stats.progress).toFixed(1)}%`;
       els.kpiEtaDays.textContent = stats.etaMonths !== null ? `${stats.etaMonths.toFixed(1)} mo` : 'Ã¢â‚¬â€';
-      renderChart(rows);
+      renderChart(rows, project);
       renderExecutionMatrix(rows);
       if (activePage === 'production') renderProductionPage(project);
     }
