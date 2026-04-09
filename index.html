@@ -274,7 +274,7 @@
               <div class="panel-header">
                 <div>
                   <div class="panel-title">Daily Manpower Matrix</div>
-                  <div class="panel-subtitle">Live daily manpower by role</div>
+                  <div class="panel-subtitle">Daily manpower by role</div>
                 </div>
                 <div class="panel-tag">Day</div>
               </div>
@@ -310,6 +310,41 @@
               </div>
               <div class="manpower-chart-wrap">
                 <svg class="manpower-chart-svg" id="manpowerHistSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+            </div>
+
+            <div class="manpower-report-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Project Equipment Matrix</div>
+                  <div class="panel-subtitle">Daily equipment by ownership and type</div>
+                </div>
+                <div class="panel-tag">Fleet</div>
+              </div>
+              <div class="manpower-table-wrap">
+                <table class="manpower-table equipment-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Fleet</th>
+                      <th>Summary</th>
+                    </tr>
+                  </thead>
+                  <tbody id="equipmentTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="manpower-chart-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-title">Daily Equipment Histogram</div>
+                  <div class="panel-subtitle">Active equipment by day</div>
+                </div>
+                <div class="panel-tag">Nos</div>
+              </div>
+              <div class="manpower-chart-wrap">
+                <svg class="manpower-chart-svg" id="equipmentHistSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
               </div>
             </div>
           </div>

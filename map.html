@@ -599,6 +599,7 @@
       }
       return '';
     }
+
     function formatDateLabel(value) {
       if (!value) return '—';
       const d = new Date(value);
@@ -745,8 +746,42 @@
         }
       });
     }
+    function getExecutionDateKey(row) {
+      const concreteEndRaw = row?.asbuilt_concreteEnd || row?.asbuilt_concreteend || row?.asbuilt_ConcreteEnd;
+      const concreteEnd = concreteEndRaw ? new Date(concreteEndRaw) : null;
+
+      if (concreteEnd instanceof Date && !Number.isNaN(concreteEnd.getTime())) {
+        const d = new Date(concreteEnd);
+        const totalMinutes = d.getUTCHours() * 60 + d.getUTCMinutes();
+        if (totalMinutes < (7 * 60)) {
+          d.setUTCDate(d.getUTCDate() - 1);
+        }
+        return d.toISOString().slice(0, 10);
+      }
+
+      return normalizeDateString(
+        row?.castingDate ||
+        row?.asbuilt_concreteStart
+      );
+    }
+
+    function yesterdayKey() {
+      const now = new Date();
+      const shiftNow = new Date(now);
+      const totalMinutes = shiftNow.getUTCHours() * 60 + shiftNow.getUTCMinutes();
+      if (totalMinutes < (7 * 60)) {
+        shiftNow.setUTCDate(shiftNow.getUTCDate() - 1);
+      }
+      shiftNow.setUTCDate(shiftNow.getUTCDate() - 1);
+      return shiftNow.toISOString().slice(0, 10);
+    }
+
+    function isYesterdayExecutedRow(row) {
+      return isExecutedRow(row) && getExecutionDateKey(row) === yesterdayKey();
+    }
+
     function getPileColor(row) {
-      return isExecutedRow(row) ? 0x00E56A : 0xE8EDF3;
+      return isYesterdayExecutedRow(row) ? 0xFF6B2C : (isExecutedRow(row) ? 0x00E56A : 0xE8EDF3);
     }
     function getBaseOpacityForRecord(record) {
       if (record?.executed) return Math.min(0.95, allBaseOpacity + 0.20);
@@ -767,7 +802,8 @@
           radiusM: getPileRadiusMeters(row),
           heightM: getVisiblePileHeight(row),
           color: getPileColor(row),
-          executed: isExecutedRow(row)
+          executed: isExecutedRow(row),
+          executedYesterday: isYesterdayExecutedRow(row)
         };
       }).filter(Boolean);
     }
@@ -1362,8 +1398,8 @@
         if (isSelected || isHovered) return;
         mesh.material.color.setHex(record.color);
         if (record.executed) {
-          mesh.material.emissive = new THREE.Color(0x0A8A4A);
-          mesh.material.emissiveIntensity = 0.24;
+          mesh.material.emissive = new THREE.Color(record.executedYesterday ? 0xFF7A1F : 0x0A8A4A);
+          mesh.material.emissiveIntensity = record.executedYesterday ? 0.42 : 0.24;
         } else {
           mesh.material.emissive = new THREE.Color(0x000000);
           mesh.material.emissiveIntensity = 0;
@@ -1565,8 +1601,8 @@
           const isSelected = record.id === recordId;
           const isExecuted = record.executed;
           if (isSelected) {
-            const selectedColor = isExecuted ? 0x2AF58E : 0xE6EBF0;
-            const emissiveColor = isExecuted ? 0x0BAA58 : 0x9FB6C6;
+            const selectedColor = isExecuted ? (record.executedYesterday ? 0xFF9A67 : 0x2AF58E) : 0xE6EBF0;
+            const emissiveColor = isExecuted ? (record.executedYesterday ? 0xFF7A1F : 0x0BAA58) : 0x9FB6C6;
             mesh.material.color.setHex(selectedColor);
             mesh.material.emissive = new THREE.Color(emissiveColor);
             mesh.material.emissiveIntensity = 0.82;
@@ -1589,11 +1625,11 @@
           const isHovered = record.id === recordId && !isSelected;
           if (isSelected) return;
           if (isHovered) {
-            const hoverColor = record.executed ? 0x23EB84 : 0xEEF2F6;
-            const hoverEmissive = record.executed ? 0x0F9F57 : 0xAFC3D1;
+            const hoverColor = record.executed ? (record.executedYesterday ? 0xFF8A52 : 0x23EB84) : 0xEEF2F6;
+            const hoverEmissive = record.executed ? (record.executedYesterday ? 0xFF7418 : 0x0F9F57) : 0xAFC3D1;
             mesh.material.color.setHex(hoverColor);
             mesh.material.emissive = new THREE.Color(hoverEmissive);
-            mesh.material.emissiveIntensity = 0.44;
+            mesh.material.emissiveIntensity = record.executedYesterday ? 0.58 : 0.44;
             mesh.material.opacity = Math.min(0.85, getNormalOpacity(record) + 0.18);
           } else {
             mesh.material.color.setHex(record.color);
@@ -1985,11 +2021,11 @@
         } catch (err) {}
         return;
       }
-      if (event.data?.type === 'AUTH_CONTEXT_UPDATED') {
-        const payload = event.data?.payload;
-        if (payload && typeof payload === 'object') {
-          try {
-            const storedRaw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+        if (event.data?.type === 'AUTH_CONTEXT_UPDATED') {
+          const payload = event.data?.payload;
+          if (payload && typeof payload === 'object') {
+            try {
+              const storedRaw = window.localStorage.getItem(AUTH_STORAGE_KEY);
             const stored = storedRaw ? JSON.parse(storedRaw) : {};
             const merged = {
               ...stored,
@@ -1997,15 +2033,24 @@
               selectedProject: payload.project || stored.selectedProject || stored.project,
               selectedPlot: payload.plot || stored.selectedPlot || stored.plot
             };
-            window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(merged));
+              window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(merged));
+            } catch (err) {}
+          }
+          try {
+            if (allPiles.length) {
+              pileRecords = buildPileRecords(allPiles);
+              chartData = aggregateDailyData(allPiles);
+              if (pileLayer) {
+                pileLayer.buildPiles();
+                refreshPileAppearance();
+                addLabelLayer();
+              }
+            }
+            sidePanel.classList.remove('open');
+            setTimeout(() => focusCurrentProject(false), 40);
           } catch (err) {}
+          return;
         }
-        try {
-          sidePanel.classList.remove('open');
-          setTimeout(() => focusCurrentProject(false), 40);
-        } catch (err) {}
-        return;
-      }
     });
   </script>
 </body>

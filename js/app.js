@@ -101,6 +101,8 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       costLmSvg: document.getElementById('costLmSvg'),
       manpowerTableBody: document.getElementById('manpowerTableBody'),
       manpowerHistSvg: document.getElementById('manpowerHistSvg'),
+      equipmentTableBody: document.getElementById('equipmentTableBody'),
+      equipmentHistSvg: document.getElementById('equipmentHistSvg'),
       utilizationTableBody: document.getElementById('utilizationTableBody'),
       utilizationSvg: document.getElementById('utilizationSvg'),
       utilizationChartTag: document.getElementById('utilizationChartTag'),
@@ -415,6 +417,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
         payload: currentUser ? {
           project: selectedProject,
           plot: selectedPlot,
+          overviewDateMode,
           type: currentUser.type,
           name: currentUser.name,
           username: currentUser.username,
@@ -2688,15 +2691,15 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       }
 
       const dailyRates = {
-        pm: 841.3,
-        se: 522.89,
-        foreman: 230.69,
-        op: 215.31,
-        vb: 215.31,
-        rig: 92.27,
-        we: 129.19,
-        me: 138.41,
-        hl: 86.37
+        pm: 461.5,
+        se: 461.5,
+        foreman: 343.4,
+        op: 247.8,
+        vb: 101,
+        rig: 108.2,
+        we: 151.4,
+        me: 3276.9,
+        hl: 101
       };
 
       const overheadsDaily = 2540; // Updated overheads rate
@@ -2704,11 +2707,25 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       const vbRental = 3250; // Updated vibro+powerpack rate
       const craneRental = 1100;
       const projectKey = normalizeText(project).toLowerCase();
-      const getEquipmentCounts = () => {
-        if (projectKey === 'vintage') return { rig: 1, vb: 0, crane: 0 };
-        return { rig: 1, vb: 1, crane: 1 };
+      const getEquipmentCountsForDate = (dateKey = '') => {
+        const normalizedDate = normalizeDateString(dateKey);
+        if (projectKey === 'vintage') {
+          return {
+            rig: 1,
+            vb: 0,
+            crane: normalizedDate && normalizedDate >= '2026-04-08' ? 1 : 0
+          };
+        }
+        if (projectKey === 'titania') {
+          return {
+            rig: normalizedDate && normalizedDate >= '2026-04-03' ? 2 : 1,
+            vb: 1,
+            crane: 1
+          };
+        }
+        return { rig: 1, vb: 0, crane: 0 };
       };
-      const equipmentCounts = getEquipmentCounts();
+      const equipmentCounts = getEquipmentCountsForDate(lastDayDateKey);
 
       const lastDayValues = {
         pm: lastDayCounts.pm * dailyRates.pm,
@@ -2791,10 +2808,22 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         const hl = calcRoleCost('hl', dailyRates.hl);
 
         const salaries = pm + se + foreman + op + vb + rig + we + me + hl;
-        
-        const r_rig = equipmentCounts.rig * rigRental * getEquipDays(w, 'rig', days);
-        const r_vb = equipmentCounts.vb * vbRental * getEquipDays(w, 'vb', days);
-        const r_crane = equipmentCounts.crane * craneRental * getEquipDays(w, 'crane', days);
+
+        const calcEquipmentRental = (equipmentKey, rate) => {
+          return d.dailyRows.reduce((sum, dayRow) => {
+            const count = Number(getEquipmentCountsForDate(dayRow?.date)?.[equipmentKey]) || 0;
+            return sum + (count * rate);
+          }, 0);
+        };
+
+        const getStaticEquipmentRental = (equipmentKey, rate) => {
+          const count = Number(getEquipmentCountsForDate('')[equipmentKey]) || 0;
+          return count * rate * getEquipDays(w, equipmentKey.replace('r_', ''), days);
+        };
+
+        const r_rig = isDynamicManpowerWeek ? calcEquipmentRental('rig', rigRental) : getStaticEquipmentRental('rig', rigRental);
+        const r_vb = isDynamicManpowerWeek ? calcEquipmentRental('vb', vbRental) : getStaticEquipmentRental('vb', vbRental);
+        const r_crane = isDynamicManpowerWeek ? calcEquipmentRental('crane', craneRental) : getStaticEquipmentRental('crane', craneRental);
         const rental = r_rig + r_vb + r_crane;
 
         const direct = salaries + rental;
@@ -2829,16 +2858,59 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
         return { w, days, salaries, pm, se, foreman, op, vb, rig, we, me, hl, rental, r_rig, r_vb, r_crane, direct, overheads, total, lm, cumLm, cumTotal, cplm };
       });
+      const getEquipmentWeekMeta = (weekNumber, equipmentKey, fallbackDays = 0) => {
+        const bucket = data[weekNumber];
+        const isDynamicWeek = bucket?.source === 'manpower' && Array.isArray(bucket?.dailyRows) && bucket.dailyRows.length > 0;
+        if (isDynamicWeek) {
+          const counts = bucket.dailyRows
+            .map(dayRow => Number(getEquipmentCountsForDate(dayRow?.date)?.[equipmentKey]) || 0)
+            .filter(count => count > 0);
+          if (!counts.length) return { hasValue: false, countText: '-', daysText: '-', count: 0, days: 0 };
+          const uniqueCounts = Array.from(new Set(counts));
+          if (uniqueCounts.length === 1) {
+            return {
+              hasValue: true,
+              countText: `${uniqueCounts[0]} Nos`,
+              daysText: `${counts.length} Days`,
+              count: uniqueCounts[0],
+              days: counts.length
+            };
+          }
+          const minCount = Math.min(...counts);
+          const maxCount = Math.max(...counts);
+          return {
+            hasValue: true,
+            countText: `${minCount}-${maxCount} Nos`,
+            daysText: `${counts.length} Days`,
+            count: counts.reduce((sum, value) => sum + value, 0),
+            days: counts.length
+          };
+        }
+
+        const staticCount = Number(getEquipmentCountsForDate('')[equipmentKey]) || 0;
+        if (!staticCount) return { hasValue: false, countText: '-', daysText: '-', count: 0, days: 0 };
+        const effectiveDays = getEquipDays(weekNumber, equipmentKey, fallbackDays);
+        return {
+          hasValue: true,
+          countText: `${staticCount} Nos`,
+          daysText: `${effectiveDays} Days`,
+          count: staticCount,
+          days: effectiveDays
+        };
+      };
 
       function formatCost(val, isLm = false) {
-        if (!val) return 'â€”';
+        if (!val) return '-';
         return Number(val.toFixed(isLm ? 1 : 2)).toLocaleString('en-US');
       }
 
+      const hasRigRental = weeklyData.some(wd => wd.r_rig > 0) || lastDayValues.r_rig > 0;
+      const hasVbRental = weeklyData.some(wd => wd.r_vb > 0) || lastDayValues.r_vb > 0;
+      const hasCraneRental = weeklyData.some(wd => wd.r_crane > 0) || lastDayValues.r_crane > 0;
       const rentalDetailRows = [];
-      if (equipmentCounts.rig > 0) rentalDetailRows.push({ targetPivot: 'rental', key: 'r_rig', label: 'Piling Rig' });
-      if (equipmentCounts.vb > 0) rentalDetailRows.push({ targetPivot: 'rental', key: 'r_vb', label: 'Vibrator & Power Pack' });
-      if (equipmentCounts.crane > 0) rentalDetailRows.push({ targetPivot: 'rental', key: 'r_crane', label: 'Crawler Crane' });
+      if (hasRigRental) rentalDetailRows.push({ targetPivot: 'rental', key: 'r_rig', label: 'Piling Rig' });
+      if (hasVbRental) rentalDetailRows.push({ targetPivot: 'rental', key: 'r_vb', label: 'Vibrator & Power Pack' });
+      if (hasCraneRental) rentalDetailRows.push({ targetPivot: 'rental', key: 'r_crane', label: 'Crawler Crane' });
 
       const tableRows = [
         { key: 'directSection', sectionLabel: 'Direct', sectionRow: true },
@@ -2920,34 +2992,46 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
         weeklyData.forEach(wd => {
           if (row.targetPivot) {
-            let count = 0, rate = 0, targetDays = wd.days;
+            let count = 0;
+            let targetDays = wd.days;
+            let countText = '-';
+            let daysText = '-';
             if (row.targetPivot === 'salaries') {
               count = data[wd.w][row.key];
-              rate = dailyRates[row.key];
+              countText = `${count} Nos`;
+              daysText = `${targetDays} Days`;
             } else if (row.key === 'r_rig') {
-              count = equipmentCounts.rig;
-              rate = rigRental;
-              targetDays = getEquipDays(wd.w, 'rig', wd.days);
+              const meta = getEquipmentWeekMeta(wd.w, 'rig', wd.days);
+              count = meta.count;
+              targetDays = meta.days || wd.days;
+              countText = meta.countText;
+              daysText = meta.daysText;
             } else if (row.key === 'r_vb') {
-              count = equipmentCounts.vb;
-              rate = vbRental;
-              targetDays = getEquipDays(wd.w, 'vb', wd.days);
+              const meta = getEquipmentWeekMeta(wd.w, 'vb', wd.days);
+              count = meta.count;
+              targetDays = meta.days || wd.days;
+              countText = meta.countText;
+              daysText = meta.daysText;
             } else if (row.key === 'r_crane') {
-              count = equipmentCounts.crane;
-              rate = craneRental;
-              targetDays = getEquipDays(wd.w, 'crane', wd.days);
+              const meta = getEquipmentWeekMeta(wd.w, 'crane', wd.days);
+              count = meta.count;
+              targetDays = meta.days || wd.days;
+              countText = meta.countText;
+              daysText = meta.daysText;
             }
-            if (count > 0) {
+            if (count > 0 && Number(wd[row.key]) > 0) {
               html += `<td class="num cost-detail-cell">
                  <div class="cost-detail-value">${formatCost(wd[row.key])} AED</div>
                  <div class="cost-detail-meta">
-                   <span class="cost-detail-count">${count} Nos</span>
+                   <span class="cost-detail-count">${countText}</span>
                    <span class="cost-detail-times">x</span>
-                   <span class="cost-detail-days">${targetDays} Days</span>
+                   <span class="cost-detail-days">${daysText}</span>
                  </div>
                </td>`;
               return;
             }
+            html += `<td class="num">-</td>`;
+            return;
           }
           html += `<td class="num">${formatCost(wd[row.key], row.key === 'lm')}</td>`;
         });
@@ -2973,7 +3057,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
               </div>
             </td>`;
           } else {
-            html += `<td class="num total-col">Ã¢â‚¬â€</td>`;
+            html += `<td class="num total-col">-</td>`;
           }
         } else {
           if (row.key === 'cumLm') {
@@ -3111,11 +3195,11 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           
           hoverRect.addEventListener('mousemove', e => window.showCostTtp(e, `
             <div class="tooltip-title">Week ${wd.w} Breakdown</div>
-            <div class="tooltip-row"><span>Salaries <span style="color:#60a5fa; font-size:10px;">(${sPct}%)</span></span><strong>${formatCost(wd.salaries)} AED</strong></div>
-            <div class="tooltip-row"><span>Rental Eq. <span style="color:#a3e635; font-size:10px;">(${rPct}%)</span></span><strong>${formatCost(wd.rental)} AED</strong></div>
-            <div class="tooltip-row"><span>Overheads <span style="color:#4ade80; font-size:10px;">(${oPct}%)</span></span><strong>${formatCost(wd.overheads)} AED</strong></div>
+            <div class="tooltip-row"><span>Salaries <span style="color:#60a5fa; font-size:10px;">(${sPct}%)</span></span><strong>${wd.salaries > 0 ? `${formatCost(wd.salaries)} AED` : '-'}</strong></div>
+            <div class="tooltip-row"><span>Rental Eq. <span style="color:#a3e635; font-size:10px;">(${rPct}%)</span></span><strong>${wd.rental > 0 ? `${formatCost(wd.rental)} AED` : '-'}</strong></div>
+            <div class="tooltip-row"><span>Overheads <span style="color:#4ade80; font-size:10px;">(${oPct}%)</span></span><strong>${wd.overheads > 0 ? `${formatCost(wd.overheads)} AED` : '-'}</strong></div>
             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:8px 0;">
-            <div class="tooltip-row"><span>Total Cost</span><strong style="color:var(--accent)">${formatCost(wd.total)} AED</strong></div>
+            <div class="tooltip-row"><span>Total Cost</span><strong style="color:var(--accent)">${wd.total > 0 ? `${formatCost(wd.total)} AED` : '-'}</strong></div>
           `));
           hoverRect.addEventListener('mouseleave', window.hideCostTtp);
           svg.appendChild(hoverRect);
@@ -3157,7 +3241,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           valL.setAttribute('font-weight', '900');
           valL.setAttribute('fill', '#f4f7fb');
           valL.style.opacity = forceAnimate ? '0' : '1';
-          valL.textContent = wd.cplm > 0 ? wd.cplm.toFixed(1) : 'â€”';
+          valL.textContent = wd.cplm > 0 ? wd.cplm.toFixed(1) : "-";
           valL.setAttribute('text-anchor', 'middle');
           
           if (forceAnimate) {
@@ -3190,10 +3274,10 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           hoverCircle.setAttribute('class', 'hover-target');
           hoverCircle.addEventListener('mousemove', e => window.showCostTtp(e, `
             <div class="tooltip-title">Week ${wd.w} Efficiency</div>
-            <div class="tooltip-row"><span>Cum. Executed</span><strong>${formatCost(wd.cumLm, true)} Lm</strong></div>
-            <div class="tooltip-row"><span>Cum. Total Cost</span><strong>${formatCost(wd.cumTotal)} AED</strong></div>
+            <div class="tooltip-row"><span>Cum. Executed</span><strong>${wd.cumLm > 0 ? `${formatCost(wd.cumLm, true)} Lm` : '-'}</strong></div>
+            <div class="tooltip-row"><span>Cum. Total Cost</span><strong>${wd.cumTotal > 0 ? `${formatCost(wd.cumTotal)} AED` : '-'}</strong></div>
             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:8px 0;">
-            <div class="tooltip-row"><span>Cum. Cost / Lm</span><strong style="color:var(--accent)">${wd.cplm > 0 ? wd.cplm.toFixed(1) : 'â€”'} AED/Lm</strong></div>
+            <div class="tooltip-row"><span>Cum. Cost / Lm</span><strong style="color:var(--accent)">${wd.cplm > 0 ? `${wd.cplm.toFixed(1)} AED/Lm` : "-"}</strong></div>
           `));
           hoverCircle.addEventListener('mouseleave', window.hideCostTtp);
           lmSvg.appendChild(hoverCircle);
@@ -3387,6 +3471,252 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         dateLabel.textContent = formatShortDateLabel(row.date);
         svg.appendChild(dateLabel);
       });
+
+      svg.onmouseleave = hideTooltip;
+    }
+
+    function getProjectEquipmentDefinitions(project) {
+      const projectKey = normalizeText(project || selectedProject || DEFAULT_PROJECT).toLowerCase();
+      const definitions = {
+        titania: [
+          { ownership: 'Owned', category: 'rig', label: 'Sany SR285 #3', start: 'project-start', color: '#8ef0bf' },
+          { ownership: 'Owned', category: 'rig', label: 'Sany SR285 #4', start: '2026-04-03', color: '#7bb6ff' },
+          { ownership: 'Owned', category: 'crane', label: 'Sany CR203', start: 'project-start', color: '#f1d48b' },
+          { ownership: 'Rented', category: 'vibrator', label: 'Vibrator', start: 'project-start', color: '#f5a6b8' }
+        ],
+        vintage: [
+          { ownership: 'Owned', category: 'rig', label: 'Sany SR285 #5', start: 'project-start', color: '#8ef0bf' },
+          { ownership: 'Owned', category: 'crane', label: 'Sany CR205', start: 'project-start', color: '#f1d48b' }
+        ]
+      };
+      return definitions[projectKey] ? definitions[projectKey].map(item => ({ ...item })) : [];
+    }
+
+    function getProjectEquipmentDateRows(project) {
+      const equipment = getProjectEquipmentDefinitions(project);
+      const projectManpowerRows = getFilteredManpowerRows(project);
+      const allDateKeys = new Set();
+
+      projectManpowerRows.forEach(row => {
+        const dateKey = normalizeDateString(row?.date);
+        if (dateKey) allDateKeys.add(dateKey);
+      });
+
+      const sortedDates = Array.from(allDateKeys).sort();
+      const projectStartDate = sortedDates[0] || normalizeDateString(new Date().toISOString());
+
+      const resolvedEquipment = equipment.map(item => ({
+        ...item,
+        start: item.start === 'project-start' ? projectStartDate : item.start
+      }));
+
+      resolvedEquipment.forEach(item => {
+        const dateKey = normalizeDateString(item.start);
+        if (dateKey) allDateKeys.add(dateKey);
+      });
+
+      const fullSortedDates = Array.from(allDateKeys).sort();
+      if (!fullSortedDates.length || !resolvedEquipment.length) return [];
+
+      const startDate = fullSortedDates[0];
+      const endDate = fullSortedDates[fullSortedDates.length - 1];
+      const rows = [];
+
+      let cursor = new Date(`${startDate}T00:00:00Z`);
+      const end = new Date(`${endDate}T00:00:00Z`);
+
+      while (cursor <= end) {
+        const dateKey = cursor.toISOString().slice(0, 10);
+        const activeItems = resolvedEquipment.filter(item => normalizeDateString(item.start) <= dateKey);
+        const ownedRigs = activeItems.filter(item => item.ownership === 'Owned' && item.category === 'rig').length;
+        const ownedCranes = activeItems.filter(item => item.ownership === 'Owned' && item.category === 'crane').length;
+        const rentedEq = activeItems.filter(item => item.ownership === 'Rented').length;
+        rows.push({
+          date: dateKey,
+          ownedRigs,
+          ownedCranes,
+          rentedEq,
+          total: ownedRigs + ownedCranes + rentedEq,
+          activeItems
+        });
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+
+      return rows;
+    }
+
+    function renderEquipmentHistogram(rows) {
+      const svg = els.equipmentHistSvg;
+      if (!svg) return;
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const wrap = svg.parentElement;
+      if (wrap) {
+        let legend = wrap.parentElement.querySelector('.equipment-chart-legend');
+        if (!legend) {
+          legend = document.createElement('div');
+          legend.className = 'equipment-chart-legend';
+          legend.innerHTML = `
+            <div class="equipment-chart-legend-item"><span class="equipment-chart-legend-swatch" style="background:#8ef0bf;"></span>Owned Rigs</div>
+            <div class="equipment-chart-legend-item"><span class="equipment-chart-legend-swatch" style="background:#f1d48b;"></span>Owned Cranes</div>
+            <div class="equipment-chart-legend-item"><span class="equipment-chart-legend-swatch" style="background:#f5a6b8;"></span>Others</div>
+          `;
+          wrap.parentElement.insertBefore(legend, wrap);
+        }
+      }
+
+      if (!rows.length) {
+        if (wrap) {
+          wrap.style.overflowX = 'hidden';
+          wrap.style.overflowY = 'hidden';
+        }
+        const empty = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        empty.setAttribute('x', '500');
+        empty.setAttribute('y', '160');
+        empty.setAttribute('text-anchor', 'middle');
+        empty.setAttribute('fill', 'rgba(244,247,251,0.62)');
+        empty.setAttribute('font-size', '14');
+        empty.setAttribute('font-weight', '700');
+        empty.textContent = 'No equipment timeline available';
+        svg.appendChild(empty);
+        return;
+      }
+
+      const maxVisibleBars = 14;
+      const chartH = 320;
+      const left = 52;
+      const right = 18;
+      const top = 16;
+      const bottom = 62;
+      const isScrollable = rows.length > maxVisibleBars;
+      const overflowSlotW = 58;
+      const overflowBarW = 28;
+      const overflowChartW = left + right + ((rows.length - 1) * overflowSlotW) + overflowBarW;
+      const chartW = isScrollable ? overflowChartW : 1000;
+      const innerH = chartH - top - bottom;
+      const stepX = isScrollable ? overflowSlotW : (chartW - left - right) / Math.max(rows.length, 1);
+      const barW = isScrollable ? overflowBarW : Math.max(16, Math.min(40, stepX * 0.5));
+      const maxVal = Math.max(...rows.map(r => r.total), 1);
+      const scaleY = innerH / maxVal;
+      svg.setAttribute('viewBox', `0 0 ${chartW} ${chartH}`);
+      if (wrap) {
+        wrap.classList.toggle('equipment-chart-wrap-scrollable', isScrollable);
+        wrap.style.overflowX = isScrollable ? 'auto' : 'hidden';
+        wrap.style.overflowY = 'hidden';
+        wrap.style.webkitOverflowScrolling = 'touch';
+        if (!isScrollable) wrap.scrollLeft = 0;
+      }
+      svg.style.width = isScrollable ? `${chartW}px` : '100%';
+      svg.style.minWidth = isScrollable ? `${chartW}px` : '100%';
+      svg.style.height = '100%';
+
+      let tooltipEl = document.getElementById('equipmentTooltip');
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'equipmentTooltip';
+        tooltipEl.className = 'chart-tooltip';
+        tooltipEl.style.position = 'fixed';
+        document.body.appendChild(tooltipEl);
+      }
+
+      const showTooltip = (evt, row) => {
+        const formatEquipmentType = value => {
+          if (value === 'rig') return 'Rig';
+          if (value === 'crane') return 'Crane';
+          if (value === 'vibrator') return 'Other';
+          return value;
+        };
+        const fleetHtml = row.activeItems.length
+          ? row.activeItems.map(item => `<div class="tooltip-row"><span>${formatEquipmentType(item.category)}</span><strong>${escapeHtml(item.label)} | ${item.ownership}</strong></div>`).join('')
+          : '<div class="tooltip-row"><span>Fleet</span><strong>-</strong></div>';
+        tooltipEl.innerHTML = `
+          <div class="tooltip-title">${formatDateFullLabel(row.date)}</div>
+          ${fleetHtml}
+        `;
+        tooltipEl.classList.add('visible');
+        const x = Math.min(window.innerWidth - 280, evt.clientX + 14);
+        const y = Math.min(window.innerHeight - 260, evt.clientY + 14);
+        tooltipEl.style.left = `${Math.max(8, x)}px`;
+        tooltipEl.style.top = `${Math.max(8, y)}px`;
+      };
+
+      const hideTooltip = () => tooltipEl.classList.remove('visible');
+
+      for (let i = 0; i < 4; i += 1) {
+        const y = top + (innerH / 3) * i;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(left));
+        line.setAttribute('x2', String(chartW - right));
+        line.setAttribute('y1', String(y));
+        line.setAttribute('y2', String(y));
+        line.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+        line.setAttribute('stroke-width', '1');
+        svg.appendChild(line);
+      }
+
+      rows.forEach((row, idx) => {
+        const barX = isScrollable ? (left + stepX * idx) : (left + stepX * idx + (stepX - barW) / 2);
+        const x = barX + barW / 2;
+        const segments = [
+          { value: row.ownedRigs, color: '#8ef0bf' },
+          { value: row.ownedCranes, color: '#f1d48b' },
+          { value: row.rentedEq, color: '#f5a6b8' }
+        ];
+
+        let currentY = chartH - bottom;
+        segments.forEach(segment => {
+          if (!segment.value) return;
+          const h = segment.value * scaleY;
+          currentY -= h;
+          const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          bar.setAttribute('x', String(barX));
+          bar.setAttribute('y', String(currentY));
+          bar.setAttribute('width', String(barW));
+          bar.setAttribute('height', String(h));
+          bar.setAttribute('rx', '4');
+          bar.setAttribute('fill', segment.color);
+          bar.setAttribute('fill-opacity', '0.92');
+          bar.setAttribute('stroke', 'rgba(255,255,255,0.18)');
+          bar.setAttribute('stroke-width', '1');
+          bar.addEventListener('mousemove', evt => showTooltip(evt, row));
+          bar.addEventListener('mouseleave', hideTooltip);
+          svg.appendChild(bar);
+        });
+
+        const totalLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        totalLabel.setAttribute('x', String(x));
+        totalLabel.setAttribute('y', String(Math.max(currentY - 6, 12)));
+        totalLabel.setAttribute('text-anchor', 'middle');
+        totalLabel.setAttribute('fill', 'rgba(244,247,251,0.94)');
+        totalLabel.setAttribute('font-size', '15');
+        totalLabel.setAttribute('font-weight', '800');
+        totalLabel.textContent = String(row.total);
+        svg.appendChild(totalLabel);
+
+        const dateLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        dateLabel.setAttribute('x', String(x));
+        dateLabel.setAttribute('y', String(chartH - 18));
+        dateLabel.setAttribute('text-anchor', 'middle');
+        dateLabel.setAttribute('fill', 'rgba(244,247,251,0.72)');
+        dateLabel.setAttribute('font-size', '13');
+        dateLabel.setAttribute('font-weight', '700');
+        dateLabel.textContent = formatShortDateLabel(row.date);
+        svg.appendChild(dateLabel);
+      });
+
+      if (wrap && isScrollable) {
+        requestAnimationFrame(() => {
+          wrap.scrollLeft = Math.max(0, wrap.scrollWidth - wrap.clientWidth);
+        });
+        if (!wrap.dataset.equipmentWheelBound) {
+          wrap.addEventListener('wheel', evt => {
+            if (Math.abs(evt.deltaY) <= Math.abs(evt.deltaX)) return;
+            evt.preventDefault();
+            wrap.scrollLeft += evt.deltaY;
+          }, { passive: false });
+          wrap.dataset.equipmentWheelBound = 'true';
+        }
+      }
 
       svg.onmouseleave = hideTooltip;
     }
@@ -4512,6 +4842,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
     function renderManpowerPage(project) {
       const rows = getFilteredManpowerRows(project);
+      const equipmentRows = getProjectEquipmentDateRows(project);
 
       if (els.manpowerTableBody) {
         if (!rows.length) {
@@ -4536,6 +4867,40 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       }
 
       renderManpowerHistogram(rows);
+
+      if (els.equipmentTableBody) {
+        if (!equipmentRows.length) {
+          els.equipmentTableBody.innerHTML = '<tr><td colspan="3" class="manpower-empty">No equipment timeline available for current scope.</td></tr>';
+        } else {
+          els.equipmentTableBody.innerHTML = equipmentRows.slice().reverse().map(row => {
+            const fleetHtml = row.activeItems.length
+              ? `<div class="equipment-fleet-list">${row.activeItems.map(item => `
+                  <span class="equipment-chip">
+                    <span class="equipment-chip-dot equipment-chip-dot-${normalizeText(item.ownership).toLowerCase()}"></span>
+                    <span class="equipment-ownership equipment-ownership-${normalizeText(item.ownership).toLowerCase()}">${escapeHtml(item.ownership)}</span>
+                    <span class="equipment-name">${escapeHtml(item.label)}</span>
+                  </span>
+                `).join('')}</div>`
+              : '-';
+            const summaryHtml = `
+              <div class="equipment-summary-stack">
+                <div class="equipment-summary-line"><span>Rigs</span><strong>${row.ownedRigs}</strong></div>
+                <div class="equipment-summary-line"><span>Cranes</span><strong>${row.ownedCranes}</strong></div>
+                <div class="equipment-summary-line"><span>Others</span><strong>${row.rentedEq}</strong></div>
+              </div>
+            `;
+            return `
+              <tr>
+                <td>${formatDateFullLabel(row.date)}</td>
+                <td class="equipment-fleet-cell">${fleetHtml}</td>
+                <td class="equipment-summary-cell">${summaryHtml}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      renderEquipmentHistogram(equipmentRows);
     }
 
     async function signInWithDirectory(loginValue, passwordValue) {
@@ -4699,6 +5064,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           renderDashboard(selectedProject);
           if (activePage === 'production') renderProductionPage(selectedProject);
           if (activePage === 'utilization') renderUtilizationPage(selectedProject);
+          broadcastAuthContext();
         }));
 
         const dateModeToggle = document.getElementById('overviewDateModeToggle');
