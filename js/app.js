@@ -664,6 +664,9 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       if (projectKey === 'titania') {
         return dateKey >= '2026-04-03' ? 2 : 1;
       }
+      if (projectKey === 'vintage') {
+        return 1;
+      }
       const activeRigs = getActiveRigCount(rows);
       return activeRigs || 1;
     }
@@ -810,6 +813,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       const completed = executedRows.length;
       const remaining = Math.max(0, total - completed);
       const progress = total ? (completed / total) * 100 : 0;
+      const projectKey = normalizeText(rows?.[0]?.project).toLowerCase();
 
       const executedDates = Array.from(new Set(
         executedRows
@@ -833,7 +837,9 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
 
       const yesterdayExecuted = aggregateDailyMetrics(rows, 'piles').find(x => x.date === previousDayKey())?.executedCount || 0;
       const latestCasting = executedRows.map(r => normalizeDateString(r.castingDate)).filter(Boolean).sort().pop() || '';
-      const activeRigs = new Set(executedRows.map(r => normalizeText(r.machine)).filter(Boolean)).size;
+      let activeRigs = new Set(executedRows.map(r => normalizeText(r.machine)).filter(Boolean)).size;
+      if (projectKey === 'titania') activeRigs = 2;
+      if (projectKey === 'vintage') activeRigs = 1;
       let etaDate = '';
       let etaMonths = null;
       if (remaining > 0 && avgPilesRaw > 0) {
