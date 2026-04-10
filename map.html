@@ -500,6 +500,7 @@
     let chartData = [];
     let SITE_CENTER = DEFAULT_SITE_CENTER;
     let pileLayer = null;
+    let mapContentBootstrapped = false;
 
     function normalizeText(value) {
       return String(value || '').trim();
@@ -1961,7 +1962,7 @@
 
     async function init() {
       const scope = getActiveScope();
-      if (!scope) throw new Error('Please sign in to load the project map.');
+      if (!scope) return false;
 
       const res = await fetch(JSON_URL, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1972,10 +1973,15 @@
       chartData = aggregateDailyData(allPiles);
       SITE_CENTER = getPileCentroid(pileRecords);
       map.setCenter(SITE_CENTER);
-      pileLayer = new ThreePileLayer('threejs-piles');
+      if (!pileLayer) {
+        pileLayer = new ThreePileLayer('threejs-piles');
+      }
+      return true;
     }
 
     function bootstrapMapContent() {
+      if (mapContentBootstrapped) return;
+      mapContentBootstrapped = true;
       applyProgressCollapsedState();
       applyChartCollapsedState();
       bindVisibilityControls();
@@ -1984,33 +1990,48 @@
       map.once('idle', () => focusCurrentProject(false));
     }
 
-    init().then(() => {
+    function showMapWaitingState(message = 'Waiting for dashboard context...') {
+      panelTitle.textContent = 'Project Map';
+      panelBody.innerHTML = `<div class="panel-section"><div class="panel-section-title">Status</div><div class="info-row"><div class="info-label">Message</div><div class="info-value">${escapeHtml(message)}</div></div></div>`;
+      sidePanel.classList.add('open');
+    }
+
+    async function loadMapDataForCurrentScope() {
+      const loaded = await init();
+      if (!loaded) {
+        showMapWaitingState();
+        return false;
+      }
+      sidePanel.classList.remove('open');
       if (map.loaded()) {
         bootstrapMapContent();
       } else {
         map.once('load', bootstrapMapContent);
       }
+      return true;
+    }
 
-      map.on('click', e => {
-        const record = getPileRecordFromInteraction(e.point, 38);
-        if (!record) return;
-        if (pileLayer) pileLayer.setHighlightedPile(record.id);
-        openPilePanel(record);
-      });
-
-      map.on('mousemove', e => {
-        const record = getPileRecordFromInteraction(e.point, 30);
-        if (pileLayer) pileLayer.setHoverPile(record ? record.id : null);
-        map.getCanvas().style.cursor = record ? 'pointer' : '';
-      });
-      map.on('style.load', () => {
-        finalizeStyleLoad();
-      });
-    }).catch(err => {
+    loadMapDataForCurrentScope().catch(err => {
       console.error(err);
       panelTitle.textContent = 'Load error';
       panelBody.innerHTML = `<div class="panel-section"><div class="panel-section-title">Error</div><div class="info-row"><div class="info-label">Message</div><div class="info-value">${escapeHtml(err.message || String(err))}</div></div></div>`;
       sidePanel.classList.add('open');
+    });
+
+    map.on('click', e => {
+      const record = getPileRecordFromInteraction(e.point, 38);
+      if (!record) return;
+      if (pileLayer) pileLayer.setHighlightedPile(record.id);
+      openPilePanel(record);
+    });
+
+    map.on('mousemove', e => {
+      const record = getPileRecordFromInteraction(e.point, 30);
+      if (pileLayer) pileLayer.setHoverPile(record ? record.id : null);
+      map.getCanvas().style.cursor = record ? 'pointer' : '';
+    });
+    map.on('style.load', () => {
+      finalizeStyleLoad();
     });
 
     window.addEventListener('message', event => {
@@ -2039,6 +2060,15 @@
             } catch (err) {}
           }
           try {
+            if (!allPiles.length) {
+              loadMapDataForCurrentScope().catch(err => {
+                console.error(err);
+                panelTitle.textContent = 'Load error';
+                panelBody.innerHTML = `<div class="panel-section"><div class="panel-section-title">Error</div><div class="info-row"><div class="info-label">Message</div><div class="info-value">${escapeHtml(err.message || String(err))}</div></div></div>`;
+                sidePanel.classList.add('open');
+              });
+              return;
+            }
             if (allPiles.length) {
               pileRecords = buildPileRecords(allPiles);
               chartData = aggregateDailyData(allPiles);

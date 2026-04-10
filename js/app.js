@@ -433,6 +433,15 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       }, window.location.origin);
     }
 
+    function bindMapFrameSync() {
+      if (!els.projectMapFrame || els.projectMapFrame.dataset.syncBound === 'true') return;
+      els.projectMapFrame.addEventListener('load', () => {
+        broadcastAuthContext();
+        setTimeout(() => triggerMapFocusAnimation(), 80);
+      });
+      els.projectMapFrame.dataset.syncBound = 'true';
+    }
+
     function persistScopedSession() {
       if (!currentUser) return;
       storeAuthSession({
@@ -4988,6 +4997,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
     async function initDashboard() {
       try {
+        bindMapFrameSync();
         await loadUsersDirectory();
         const hasSession = await restoreExistingSession();
 
