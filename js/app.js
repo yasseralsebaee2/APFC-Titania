@@ -1,6 +1,7 @@
-const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-pile-asbuilt.json_';
+    const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-pile-asbuilt.json_';
     const USERS_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-users.json_';
     const MANPOWER_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc_manpower.json_';
+    const COMPANY_MANPOWER_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc_manpowers.json_';
     const ACCESS_REQUEST_EMAIL = 'yasser.alsebaee@granadaeurope.com';
     const DEFAULT_PROJECT = 'Titania';
     const AUTH_STORAGE_KEY = 'apfcDashboardAuth';
@@ -91,6 +92,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       pageProduction: document.getElementById('pageProduction'),
       pageUtilization: document.getElementById('pageUtilization'),
       pageManpower: document.getElementById('pageManpower'),
+      pageCompanyManpower: document.getElementById('pageCompanyManpower'),
       pageTimeline: document.getElementById('pageTimeline'),
       pageCost: document.getElementById('pageCost'),
       costTableHeadRow: document.querySelector('.financial-table thead tr'),
@@ -103,6 +105,19 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       manpowerHistSvg: document.getElementById('manpowerHistSvg'),
       equipmentTableBody: document.getElementById('equipmentTableBody'),
       equipmentHistSvg: document.getElementById('equipmentHistSvg'),
+      companyManpowerLayoutSelect: document.getElementById('companyManpowerLayoutSelect'),
+      companyManpowerDesignationSelect: document.getElementById('companyManpowerDesignationSelect'),
+      companyManpowerScopeButtons: Array.from(document.querySelectorAll('#companyManpowerScopeToggle button')),
+      companyManpowerExportBtn: document.getElementById('companyManpowerExportBtn'),
+      companyManpowerSubtitle: document.getElementById('companyManpowerSubtitle'),
+      companyManpowerSummaryMeta: document.getElementById('companyManpowerSummaryMeta'),
+      companyManpowerColGroup: document.getElementById('companyManpowerColGroup'),
+      companyManpowerHeadRow: document.getElementById('companyManpowerHeadRow'),
+      companyManpowerMatrixBody: document.getElementById('companyManpowerMatrixBody'),
+      companyExportPanel: document.getElementById('companyExportPanel'),
+      companyExportProjectSelect: document.getElementById('companyExportProjectSelect'),
+      companyExportCancelBtn: document.getElementById('companyExportCancelBtn'),
+      companyExportConfirmBtn: document.getElementById('companyExportConfirmBtn'),
       utilizationTableBody: document.getElementById('utilizationTableBody'),
       utilizationSvg: document.getElementById('utilizationSvg'),
       utilizationChartTag: document.getElementById('utilizationChartTag'),
@@ -126,6 +141,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
 
     let rawRows = [];
     let manpowerRows = [];
+    let companyManpowerRows = [];
     let usersDirectory = [];
     let currentUser = null;
     let selectedProject = DEFAULT_PROJECT;
@@ -134,6 +150,9 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
     let chartMetric = 'piles';
     let chartGranularity = 'day';
     let activePage = 'overview';
+    let companyManpowerScopeMode = 'filtered';
+    let companyManpowerDesignationFilter = 'all';
+    let companyManpowerColumnWidths = {};
     let utilizationMode = 'daily';
     let overviewDateMode = 'shift'; // shared reporting mode for Overview + Production only
     let prodState = {
@@ -250,13 +269,57 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
     }
 
     function extractManpowerList(data) {
-      if (Array.isArray(data)) return data;
-      if (!data || typeof data !== 'object') return [];
-      const candidates = [data.body, data.rows, data.items, data.data];
-      for (const candidate of candidates) {
-        if (Array.isArray(candidate)) return candidate;
+      const items = Array.isArray(data) ? data : (!data || typeof data !== 'object' ? [] : [data.body, data.rows, data.items, data.data].find(Array.isArray) || []);
+      return items.filter(row => {
+        const keys = Object.keys(row || {}).map(key => key.toLowerCase());
+        return keys.includes('date') || keys.includes('projectmanager') || keys.includes('siteengineer') || keys.includes('project manager');
+      });
+    }
+
+    function extractCompanyManpowerList(data) {
+      const items = Array.isArray(data) ? data : (!data || typeof data !== 'object' ? [] : [data.body, data.rows, data.items, data.data].find(Array.isArray) || []);
+      return items.filter(row => {
+        const keys = Object.keys(row || {}).map(key => key.toLowerCase());
+        return keys.includes('employee number') || keys.includes('employee name') || keys.includes('designation');
+      });
+    }
+
+    const COMPANY_PROJECT_ALIASES = {
+      Titania: ['titania', '89'],
+      Vintage: ['vintage']
+    };
+
+    function getCompanyProjectToken(value) {
+      const normalized = normalizeText(value).toLowerCase();
+      if (!normalized) return '';
+      for (const [label, aliases] of Object.entries(COMPANY_PROJECT_ALIASES)) {
+        if ([label.toLowerCase(), ...aliases].includes(normalized)) return label.toLowerCase();
       }
-      return [];
+      return normalized;
+    }
+
+    function getCompanyProjectLabel(value) {
+      const normalized = normalizeText(value);
+      if (!normalized) return 'Unassigned';
+      for (const [label, aliases] of Object.entries(COMPANY_PROJECT_ALIASES)) {
+        if ([label.toLowerCase(), ...aliases].includes(normalized.toLowerCase())) return label;
+      }
+      return normalized;
+    }
+
+    function sanitizeCompanyEmployee(row) {
+      return {
+        employeeNumber: normalizeText(row['Employee Number'] || row.employeeNumber || row.employee_number),
+        employeeName: normalizeText(row['Employee Name'] || row.employeeName || row.employee_name),
+        designation: normalizeText(row.Designation || row.designation),
+        project: getCompanyProjectLabel(row.Project || row.project),
+        projectRaw: normalizeText(row.Project || row.project),
+        shift: normalizeText(row.Shift || row.shift),
+        campNumber: normalizeText(row['Camp Number'] || row.campNumber || row.camp_number),
+        roomNumber: normalizeText(row['Room Number'] || row.roomNumber || row.room_number),
+        joiningDate: normalizeText(row['Joining Date'] || row.joiningDate || row.joining_date),
+        remarks: normalizeText(row.Remarks || row.remarks)
+      };
     }
 
     function getScopeLabel() {
@@ -476,6 +539,8 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       selectedProject = isAllProjectsValue(user?.project) ? DEFAULT_PROJECT : (user?.project || DEFAULT_PROJECT);
       selectedPlot = user?.plot || '';
       timelineState.pile = 'all';
+      companyManpowerScopeMode = 'filtered';
+      companyManpowerDesignationFilter = 'all';
       updateUserContextUi();
       if (currentUser) {
         persistScopedSession();
@@ -946,6 +1011,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       els.pageProduction.classList.toggle('active', page === 'production');
       if (els.pageUtilization) els.pageUtilization.classList.toggle('active', page === 'utilization');
       if (els.pageManpower) els.pageManpower.classList.toggle('active', page === 'manpower');
+      if (els.pageCompanyManpower) els.pageCompanyManpower.classList.toggle('active', page === 'companymanpower');
       els.pageTimeline.classList.toggle('active', page === 'timeline');
       if (els.pageCost) els.pageCost.classList.toggle('active', page === 'cost');
       els.kpiRow.style.display = page === 'overview' ? 'grid' : 'none';
@@ -958,16 +1024,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       }
 
       els.navButtons.forEach(btn => {
-        const label = btn.querySelector('.nav-label')?.textContent?.trim();
-        const shouldBeActive =
-          (page === 'overview' && label === 'Overview') ||
-          (page === 'map' && label === 'Map') ||
-          (page === 'production' && label === 'Production') ||
-          (page === 'utilization' && label === 'Utilization') ||
-          (page === 'manpower' && label === 'Manpower') ||
-          (page === 'timeline' && label === 'Timeline') ||
-          (page === 'cost' && label === 'Cost');
-        btn.classList.toggle('active', shouldBeActive);
+        btn.classList.toggle('active', btn.dataset.page === page);
       });
 
       if (page === 'overview') renderDashboard(selectedProject);
@@ -975,6 +1032,7 @@ const JSON_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/re
       if (page === 'production') renderProductionPage(selectedProject, true);
       if (page === 'utilization') renderUtilizationPage(selectedProject);
       if (page === 'manpower') renderManpowerPage(selectedProject);
+      if (page === 'companymanpower') renderCompanyManpowerPage(selectedProject);
       if (page === 'timeline') renderTimelinePage(selectedProject, true);
       if (page === 'cost') renderCostPage(selectedProject, true);
     }
@@ -1873,12 +1931,25 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         manpowerRows = [];
       }
 
+      try {
+        const companyManpowerRes = await fetch(COMPANY_MANPOWER_URL, { cache: 'no-store' });
+        if (!companyManpowerRes.ok) throw new Error(`HTTP ${companyManpowerRes.status}`);
+        const companyManpowerData = await companyManpowerRes.json();
+        companyManpowerRows = extractCompanyManpowerList(companyManpowerData);
+      } catch (err) {
+        console.error('Unable to load company manpower source:', err);
+        companyManpowerRows = [];
+      }
+
       syncProjectScopeFromData();
       broadcastAuthContext();
+      updateCompanyExportProjectOptions();
+      updateCompanyDesignationOptions();
 
       renderDashboard(selectedProject);
       if (activePage === 'utilization') renderUtilizationPage(selectedProject);
       if (activePage === 'manpower') renderManpowerPage(selectedProject);
+      if (activePage === 'companymanpower') renderCompanyManpowerPage(selectedProject);
       els.dataSourceChip.textContent = 'Live Data Source';
     }
 
@@ -3554,6 +3625,355 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       return rows;
     }
 
+    function getCompanyProjectOrder() {
+      const baseProjects = Array.from(new Set(rawRows.map(row => normalizeText(row?.project)).filter(Boolean)));
+      const companyProjects = Array.from(new Set(companyManpowerRows.map(row => getCompanyProjectLabel(row.Project || row.project)).filter(Boolean)));
+      const ordered = [];
+      [...baseProjects, ...companyProjects].forEach(project => {
+        if (!ordered.includes(project)) ordered.push(project);
+      });
+      return ordered;
+    }
+
+    function updateCompanyDesignationOptions() {
+      if (!els.companyManpowerDesignationSelect) return;
+      const designations = Array.from(new Set(
+        companyManpowerRows
+          .map(sanitizeCompanyEmployee)
+          .map(employee => employee.designation)
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b));
+
+      const currentValue = companyManpowerDesignationFilter || 'all';
+      els.companyManpowerDesignationSelect.innerHTML = [
+        '<option value="all">All Designations</option>',
+        ...designations.map(designation => `<option value="${escapeHtml(designation)}">${escapeHtml(designation)}</option>`)
+      ].join('');
+
+      els.companyManpowerDesignationSelect.value = designations.includes(currentValue) ? currentValue : 'all';
+      companyManpowerDesignationFilter = els.companyManpowerDesignationSelect.value;
+    }
+
+    function getCompanyColumnWidth(projectName) {
+      return companyManpowerColumnWidths[projectName] || 320;
+    }
+
+    function ensureCompanyColumnWidths(projects) {
+      projects.forEach(projectName => {
+        if (!companyManpowerColumnWidths[projectName]) {
+          companyManpowerColumnWidths[projectName] = 320;
+        }
+      });
+    }
+
+    function getFilteredCompanyEmployees(project = selectedProject) {
+      const targetProjectToken = getCompanyProjectToken(project || selectedProject || DEFAULT_PROJECT);
+      return companyManpowerRows
+        .map(sanitizeCompanyEmployee)
+        .filter(employee => employee.employeeName && employee.designation)
+        .filter(employee => {
+          if (companyManpowerScopeMode === 'all') return true;
+          return getCompanyProjectToken(employee.projectRaw || employee.project) === targetProjectToken;
+        })
+        .filter(employee => companyManpowerDesignationFilter === 'all' || employee.designation === companyManpowerDesignationFilter);
+    }
+
+    function getCompanyProjectColumns(project = selectedProject) {
+      const filteredEmployees = getFilteredCompanyEmployees(project);
+      const projectOrder = getCompanyProjectOrder();
+      const filteredProjects = Array.from(new Set(filteredEmployees.map(employee => employee.project)));
+      filteredProjects.sort((a, b) => {
+        const ai = projectOrder.indexOf(a);
+        const bi = projectOrder.indexOf(b);
+        if (ai === -1 && bi === -1) return a.localeCompare(b);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
+      return filteredProjects;
+    }
+
+    function groupCompanyEmployeesForMatrix(project = selectedProject) {
+      const employees = getFilteredCompanyEmployees(project);
+      const projects = getCompanyProjectColumns(project);
+      const designationMap = new Map();
+
+      employees.forEach(employee => {
+        if (!designationMap.has(employee.designation)) designationMap.set(employee.designation, new Map());
+        const projectMap = designationMap.get(employee.designation);
+        if (!projectMap.has(employee.project)) projectMap.set(employee.project, []);
+        projectMap.get(employee.project).push(employee);
+      });
+
+      const designations = Array.from(designationMap.keys()).sort((a, b) => a.localeCompare(b));
+      return {
+        projects,
+        designationGroups: designations.map(designation => {
+          const projectMap = designationMap.get(designation);
+          const counts = projects.map(projectName => (projectMap.get(projectName) || []).length);
+          const rowCount = Math.max(...counts, 1);
+          const total = counts.reduce((sum, value) => sum + value, 0);
+          projects.forEach(projectName => {
+            const list = projectMap.get(projectName) || [];
+            list.sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+          });
+          return { designation, projectMap, rowCount, total };
+        }),
+        totalEmployees: employees.length
+      };
+    }
+
+    function updateCompanyExportProjectOptions() {
+      if (!els.companyExportProjectSelect) return;
+      const projects = getCompanyProjectOrder();
+      els.companyExportProjectSelect.innerHTML = [
+        '<option value="all">All Projects</option>',
+        ...projects.map(project => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`)
+      ].join('');
+    }
+
+    function toggleCompanyExportPanel(show) {
+      if (!els.companyExportPanel) return;
+      els.companyExportPanel.hidden = !show;
+    }
+
+    function exportCompanyManpowerWorkbook(scopeProject) {
+      const normalizedScope = normalizeText(scopeProject).toLowerCase();
+      const rows = companyManpowerRows
+        .map(sanitizeCompanyEmployee)
+        .filter(employee => employee.employeeName && employee.designation)
+        .filter(employee => normalizedScope === 'all' || employee.project === scopeProject)
+        .sort((a, b) => (
+          a.project.localeCompare(b.project) ||
+          a.designation.localeCompare(b.designation) ||
+          a.employeeName.localeCompare(b.employeeName)
+        ));
+
+      const title = normalizedScope === 'all' ? 'APFC Company Manpower' : `${scopeProject} Manpower`;
+      const generatedAt = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dubai' });
+      const tableRows = rows.map(row => `
+        <tr>
+          <td>${escapeHtml(row.employeeNumber || '-')}</td>
+          <td>${escapeHtml(row.employeeName)}</td>
+          <td>${escapeHtml(row.designation)}</td>
+          <td>${escapeHtml(row.project)}</td>
+          <td>${escapeHtml(row.shift || '-')}</td>
+          <td>${escapeHtml(row.campNumber || '-')}</td>
+          <td>${escapeHtml(row.roomNumber || '-')}</td>
+          <td>${escapeHtml(row.joiningDate || '-')}</td>
+          <td>${escapeHtml(row.remarks || '-')}</td>
+        </tr>
+      `).join('');
+
+      const workbookHtml = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { font-family: Segoe UI, Arial, sans-serif; color: #0e1b24; }
+              h1 { margin: 0 0 6px; font-size: 22px; }
+              p { margin: 0 0 14px; color: #41515e; font-size: 12px; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #c6d3dc; padding: 8px 10px; font-size: 11px; text-align: left; }
+              th { background: #0f1720; color: #ffffff; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+              tr:nth-child(even) td { background: #f4f8fb; }
+            </style>
+          </head>
+          <body>
+            <h1>${escapeHtml(title)}</h1>
+            <p>Generated from APFC Project Dashboard on ${escapeHtml(generatedAt)}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Employee Number</th>
+                  <th>Employee Name</th>
+                  <th>Designation</th>
+                  <th>Project</th>
+                  <th>Shift</th>
+                  <th>Camp Number</th>
+                  <th>Room Number</th>
+                  <th>Joining Date</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const blob = new Blob([workbookHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const link = document.createElement('a');
+      const slug = normalizedScope === 'all' ? 'all-projects' : scopeProject.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      link.href = URL.createObjectURL(blob);
+      link.download = `apfc-manpower-${slug}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    }
+
+    function renderCompanyManpowerPage(project = selectedProject) {
+      const layout = els.companyManpowerLayoutSelect?.value || 'project-matrix';
+      const { projects, designationGroups, totalEmployees } = groupCompanyEmployeesForMatrix(project);
+
+      if (els.companyManpowerSubtitle) {
+        els.companyManpowerSubtitle.textContent = layout === 'project-matrix'
+          ? 'Employee comparison by designation and project'
+          : 'Employee comparison by designation and project';
+      }
+
+      if (els.companyManpowerDesignationSelect && els.companyManpowerDesignationSelect.value !== companyManpowerDesignationFilter) {
+        els.companyManpowerDesignationSelect.value = companyManpowerDesignationFilter;
+      }
+
+      els.companyManpowerScopeButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.companyScope === companyManpowerScopeMode);
+      });
+
+      ensureCompanyColumnWidths(projects);
+
+      if (els.companyManpowerColGroup) {
+        els.companyManpowerColGroup.innerHTML = [
+          '<col style="width:220px;">',
+          ...projects.map(projectName => `<col style="width:${getCompanyColumnWidth(projectName)}px;">`)
+        ].join('');
+      }
+
+      if (els.companyManpowerSummaryMeta) {
+        const scopeText = companyManpowerScopeMode === 'all' ? 'All projects' : `Filtered by ${project}`;
+        els.companyManpowerSummaryMeta.textContent = `${scopeText} • ${projects.length} project column${projects.length === 1 ? '' : 's'} • ${totalEmployees} employee${totalEmployees === 1 ? '' : 's'}`;
+      }
+
+      if (els.companyManpowerHeadRow) {
+        els.companyManpowerHeadRow.innerHTML = [
+          '<th>Designation</th>',
+          ...projects.map(projectName => {
+            const count = getFilteredCompanyEmployees(project).filter(employee => employee.project === projectName).length;
+            return `<th class="company-project-th" data-company-col="${escapeHtml(projectName)}"><div class="company-project-head"><strong>${escapeHtml(projectName)}</strong><span>${count} Staff</span></div><span class="company-col-resizer" data-company-col="${escapeHtml(projectName)}" aria-hidden="true"></span></th>`;
+          })
+        ].join('');
+      }
+
+      if (!els.companyManpowerMatrixBody) return;
+
+      if (!projects.length || !designationGroups.length) {
+        els.companyManpowerMatrixBody.innerHTML = `<tr><td colspan="${Math.max(projects.length + 1, 2)}" class="manpower-empty">No company manpower records available for the current scope.</td></tr>`;
+        return;
+      }
+
+      els.companyManpowerMatrixBody.innerHTML = designationGroups.map(group => {
+        return Array.from({ length: group.rowCount }, (_, rowIndex) => {
+          const cells = projects.map(projectName => {
+            const employee = (group.projectMap.get(projectName) || [])[rowIndex];
+            if (!employee) {
+              return '<td data-company-col="' + escapeHtml(projectName) + '"><div class="company-empty-slot">—</div></td>';
+            }
+            return `
+              <td data-company-col="${escapeHtml(projectName)}">
+                <div class="company-employee-card">
+                  <div class="company-employee-name">${escapeHtml(employee.employeeName)}</div>
+                  <div class="company-employee-meta">${escapeHtml(employee.shift || '-')}</div>
+                </div>
+              </td>
+            `;
+          }).join('');
+
+          return `
+            <tr>
+              ${rowIndex === 0 ? `<td rowspan="${group.rowCount}" class="company-designation-cell"><div class="company-designation-name">${escapeHtml(group.designation)}</div><div class="company-designation-meta">${group.total} Staff</div></td>` : ''}
+              ${cells}
+            </tr>
+          `;
+        }).join('');
+      }).join('');
+
+      bindCompanyManpowerHoverState();
+      bindCompanyColumnResize();
+    }
+
+    function bindCompanyManpowerHoverState() {
+      const table = document.getElementById('companyManpowerTable');
+      const body = els.companyManpowerMatrixBody;
+      const headRow = els.companyManpowerHeadRow;
+      if (!table || !body || !headRow || table.dataset.hoverBound === 'true') return;
+
+      const clearHover = () => {
+        table.querySelectorAll('.company-hover-row, .company-hover-col, .company-hover-cell').forEach(el => {
+          el.classList.remove('company-hover-row', 'company-hover-col', 'company-hover-cell');
+        });
+      };
+
+      body.addEventListener('mouseover', evt => {
+        const td = evt.target.closest('td[data-company-col]');
+        if (!td) return;
+        clearHover();
+        const tr = td.parentElement;
+        const colName = td.dataset.companyCol;
+        tr?.querySelectorAll('td').forEach(cell => cell.classList.add('company-hover-row'));
+        td.classList.add('company-hover-cell');
+        headRow.querySelectorAll('th').forEach(th => {
+          const strong = th.querySelector('strong');
+          if (strong && strong.textContent === colName) th.classList.add('company-hover-col');
+        });
+        table.querySelectorAll(`td[data-company-col="${CSS.escape(colName)}"]`).forEach(cell => {
+          cell.classList.add('company-hover-col');
+        });
+      });
+
+      body.addEventListener('mouseleave', clearHover);
+      table.dataset.hoverBound = 'true';
+    }
+
+    function bindCompanyColumnResize() {
+      const table = document.getElementById('companyManpowerTable');
+      const headRow = els.companyManpowerHeadRow;
+      if (!table || !headRow || table.dataset.resizeBound === 'true') return;
+
+      let dragState = null;
+
+      const stopDrag = () => {
+        if (!dragState) return;
+        dragState.header.classList.remove('company-col-resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        dragState = null;
+      };
+
+      const onMove = evt => {
+        if (!dragState) return;
+        const delta = evt.clientX - dragState.startX;
+        const nextWidth = Math.max(220, dragState.startWidth + delta);
+        companyManpowerColumnWidths[dragState.project] = nextWidth;
+        const col = els.companyManpowerColGroup?.children[dragState.index + 1];
+        if (col) col.style.width = `${nextWidth}px`;
+      };
+
+      headRow.addEventListener('mousedown', evt => {
+        const handle = evt.target.closest('.company-col-resizer');
+        if (!handle) return;
+        const project = handle.dataset.companyCol;
+        const header = handle.closest('th');
+        const index = Array.from(headRow.children).indexOf(header) - 1;
+        if (!project || !header || index < 0) return;
+        evt.preventDefault();
+        dragState = {
+          project,
+          header,
+          index,
+          startX: evt.clientX,
+          startWidth: getCompanyColumnWidth(project)
+        };
+        header.classList.add('company-col-resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', stopDrag);
+      table.dataset.resizeBound = 'true';
+    }
+
     function renderEquipmentHistogram(rows) {
       const svg = els.equipmentHistSvg;
       if (!svg) return;
@@ -4927,6 +5347,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       currentUser = null;
       selectedProject = DEFAULT_PROJECT;
       selectedPlot = '';
+      companyManpowerScopeMode = 'filtered';
+      companyManpowerDesignationFilter = 'all';
       updateUserContextUi();
       setAuthLocked(true);
       toggleRequestAccessPanel(false);
@@ -5017,6 +5439,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
             if (activePage === 'production') renderProductionPage(selectedProject, true);
             if (activePage === 'utilization') renderUtilizationPage(selectedProject);
             if (activePage === 'manpower') renderManpowerPage(selectedProject);
+            if (activePage === 'companymanpower') renderCompanyManpowerPage(selectedProject);
             if (activePage === 'timeline') renderTimelinePage(selectedProject, true);
             if (activePage === 'cost') renderCostPage(selectedProject, true);
             broadcastAuthContext();
@@ -5088,14 +5511,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         els.metricToggleButtons.forEach(btn => btn.addEventListener('click', () => setMetric(btn.dataset.metric)));
 
         els.navButtons.forEach(btn => {
-          const label = btn.querySelector('.nav-label')?.textContent?.trim();
-          if (label === 'Overview') btn.addEventListener('click', () => setActivePage('overview'));
-          if (label === 'Map') btn.addEventListener('click', () => setActivePage('map'));
-          if (label === 'Production') btn.addEventListener('click', () => setActivePage('production'));
-          if (label === 'Utilization') btn.addEventListener('click', () => setActivePage('utilization'));
-          if (label === 'Manpower') btn.addEventListener('click', () => setActivePage('manpower'));
-          if (label === 'Timeline') btn.addEventListener('click', () => setActivePage('timeline'));
-          if (label === 'Cost') btn.addEventListener('click', () => setActivePage('cost'));
+          if (!btn.dataset.page) return;
+          btn.addEventListener('click', () => setActivePage(btn.dataset.page));
         });
 
         els.prodToolButtons.forEach(btn => btn.addEventListener('click', () => {
@@ -5113,6 +5530,39 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           els.utilizationModeButtons.forEach(b => b.classList.toggle('active', b.dataset.utilMode === utilizationMode));
           renderUtilizationPage(selectedProject);
         }));
+
+        els.companyManpowerLayoutSelect?.addEventListener('change', () => {
+          renderCompanyManpowerPage(selectedProject);
+        });
+
+        els.companyManpowerDesignationSelect?.addEventListener('change', () => {
+          companyManpowerDesignationFilter = els.companyManpowerDesignationSelect.value || 'all';
+          renderCompanyManpowerPage(selectedProject);
+        });
+
+        els.companyManpowerScopeButtons.forEach(btn => btn.addEventListener('click', () => {
+          companyManpowerScopeMode = btn.dataset.companyScope || 'filtered';
+          els.companyManpowerScopeButtons.forEach(button => button.classList.toggle('active', button === btn));
+          renderCompanyManpowerPage(selectedProject);
+        }));
+
+        els.companyManpowerExportBtn?.addEventListener('click', () => {
+          updateCompanyExportProjectOptions();
+          toggleCompanyExportPanel(true);
+        });
+
+        els.companyExportCancelBtn?.addEventListener('click', () => {
+          toggleCompanyExportPanel(false);
+        });
+
+        els.companyExportPanel?.addEventListener('click', evt => {
+          if (evt.target === els.companyExportPanel) toggleCompanyExportPanel(false);
+        });
+
+        els.companyExportConfirmBtn?.addEventListener('click', () => {
+          exportCompanyManpowerWorkbook(els.companyExportProjectSelect?.value || 'all');
+          toggleCompanyExportPanel(false);
+        });
 
         if (hasSession) {
           updateTimelinePileList(selectedProject);

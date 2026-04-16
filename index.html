@@ -61,13 +61,14 @@
     <aside class="sidebar">
       <div class="brand brand-apfc"><img src="assets/APFC_Logo.png" alt="APFC logo" /></div>
       <div class="nav-group">
-        <button class="nav-btn active" data-icon="overview"><span class="nav-icon"></span><span class="nav-label">Overview</span></button>
-        <button class="nav-btn" data-icon="overview"><span class="nav-icon"></span><span class="nav-label">Map</span></button>
-        <button class="nav-btn" data-icon="production"><span class="nav-icon"></span><span class="nav-label">Production</span></button>
-        <button class="nav-btn" data-icon="utilization"><span class="nav-icon"></span><span class="nav-label">Utilization</span></button>
-        <button class="nav-btn" data-icon="manpower"><span class="nav-icon"></span><span class="nav-label">Manpower</span></button>
-        <button class="nav-btn" data-icon="timeline"><span class="nav-icon"></span><span class="nav-label">Timeline</span></button>
-        <button class="nav-btn" data-icon="cost"><span class="nav-icon"></span><span class="nav-label">Cost</span></button>
+        <button class="nav-btn active" data-icon="overview" data-page="overview"><span class="nav-icon"></span><span class="nav-label">Overview</span></button>
+        <button class="nav-btn" data-icon="overview" data-page="map"><span class="nav-icon"></span><span class="nav-label">Map</span></button>
+        <button class="nav-btn" data-icon="production" data-page="production"><span class="nav-icon"></span><span class="nav-label">Production</span></button>
+        <button class="nav-btn" data-icon="utilization" data-page="utilization"><span class="nav-icon"></span><span class="nav-label">Utilization</span></button>
+        <button class="nav-btn" data-icon="manpower" data-page="manpower"><span class="nav-icon"></span><span class="nav-label">Daily Resources</span></button>
+        <button class="nav-btn" data-icon="companymanpower" data-page="companymanpower"><span class="nav-icon"></span><span class="nav-label">Manpower</span></button>
+        <button class="nav-btn" data-icon="timeline" data-page="timeline"><span class="nav-icon"></span><span class="nav-label">Timeline</span></button>
+        <button class="nav-btn" data-icon="cost" data-page="cost"><span class="nav-icon"></span><span class="nav-label">Cost</span></button>
       </div>
     </aside>
 
@@ -407,6 +408,59 @@
                 <div class="utilization-chart-wrap" id="utilizationChartWrap">
                   <svg class="utilization-chart-svg" id="utilizationSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-view" id="pageCompanyManpower">
+          <div class="company-manpower-layout">
+            <div class="company-manpower-panel">
+              <div class="panel-header company-manpower-header">
+                <div>
+                  <div class="panel-title">Company Manpower Matrix</div>
+                  <div class="panel-subtitle" id="companyManpowerSubtitle">Employee comparison by designation and project</div>
+                </div>
+                <div class="company-manpower-controls">
+                  <select class="company-manpower-select" id="companyManpowerLayoutSelect" aria-label="Company manpower layout">
+                    <option value="project-matrix">Project Matrix</option>
+                  </select>
+                  <select class="company-manpower-select" id="companyManpowerDesignationSelect" aria-label="Company manpower designation filter">
+                    <option value="all">All Designations</option>
+                  </select>
+                  <div class="mode-toggle company-manpower-scope-toggle" id="companyManpowerScopeToggle">
+                    <button class="active" data-company-scope="filtered" type="button">Current Project</button>
+                    <button data-company-scope="all" type="button">All Projects</button>
+                  </div>
+                  <button class="timeline-action-btn primary" id="companyManpowerExportBtn" type="button">Export</button>
+                </div>
+              </div>
+              <div class="company-manpower-summary" id="companyManpowerSummaryMeta">Loading manpower roster...</div>
+              <div class="company-manpower-table-wrap">
+                <table class="company-manpower-table" id="companyManpowerTable">
+                  <colgroup id="companyManpowerColGroup"></colgroup>
+                  <thead>
+                    <tr id="companyManpowerHeadRow"></tr>
+                  </thead>
+                  <tbody id="companyManpowerMatrixBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="company-export-overlay" id="companyExportPanel" hidden>
+            <div class="company-export-card">
+              <div class="company-export-title">Export Company Manpower</div>
+              <div class="company-export-subtitle">Choose a project-specific list or export the full manpower register.</div>
+              <label class="auth-field">
+                <span>Export Scope</span>
+                <select id="companyExportProjectSelect" class="company-manpower-select">
+                  <option value="all">All Projects</option>
+                </select>
+              </label>
+              <div class="company-export-actions">
+                <button class="auth-secondary-btn" id="companyExportCancelBtn" type="button">Cancel</button>
+                <button class="auth-submit auth-submit-small" id="companyExportConfirmBtn" type="button">Download Excel</button>
               </div>
             </div>
           </div>

@@ -440,6 +440,8 @@ body.auth-locked .auth-shell {
     .nav-btn[data-icon="production"] .nav-icon::after { width: 16px; height: 16px; border-color: transparent transparent currentColor currentColor; border-radius: 0 0 0 5px; left: 1px; top: 0; }
 .nav-btn[data-icon="manpower"] .nav-icon::before { width: 3px; height: 12px; left: 1px; bottom: 2px; background: currentColor; border: 0; border-radius: 2px; box-shadow: 5px -1px 0 currentColor, 10px -4px 0 currentColor; }
 .nav-btn[data-icon="manpower"] .nav-icon::after { width: 16px; height: 16px; border-color: transparent transparent currentColor currentColor; border-radius: 0 0 0 5px; left: 1px; top: 0; opacity: 0.72; }
+.nav-btn[data-icon="companymanpower"] .nav-icon::before { width: 4px; height: 12px; left: 1px; bottom: 2px; background: currentColor; border: 0; border-radius: 2px; box-shadow: 6px -2px 0 currentColor, 12px 0 0 currentColor; }
+.nav-btn[data-icon="companymanpower"] .nav-icon::after { width: 16px; height: 2px; border: 0; background: currentColor; border-radius: 999px; top: 2px; left: 1px; opacity: 0.78; }
 .nav-btn[data-icon="utilization"] .nav-icon::before { width: 14px; height: 14px; border-radius: 50%; left: 2px; top: 1px; }
 .nav-btn[data-icon="utilization"] .nav-icon::after { width: 7px; height: 2px; border: 0; background: currentColor; border-radius: 999px; left: 8px; top: 10px; transform-origin: left center; transform: rotate(-35deg); }
 .nav-btn[data-icon="timeline"] .nav-icon::before { width: 15px; height: 2px; top: 9px; background: currentColor; border: 0; border-radius: 999px; box-shadow: -5px 0 0 currentColor, 5px 0 0 currentColor; }
@@ -3071,6 +3073,317 @@ body.auth-locked .auth-shell {
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 12px;
+}
+
+.company-manpower-layout {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+}
+
+.company-manpower-panel {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.company-manpower-header {
+  gap: 14px;
+}
+
+.company-manpower-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.company-manpower-select {
+  min-width: 150px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(7, 10, 14, 0.92);
+  color: rgba(244,247,251,0.92);
+  font-size: 12px;
+  font-weight: 700;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.company-manpower-summary {
+  padding: 0 18px 12px;
+  color: rgba(244,247,251,0.64);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.company-manpower-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.company-manpower-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1820px;
+  table-layout: fixed;
+}
+
+.company-manpower-table th,
+.company-manpower-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  vertical-align: top;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.company-manpower-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #06090d;
+  color: rgba(244,247,251,0.82);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.company-manpower-table th:first-child {
+  min-width: 220px;
+  left: 0;
+  z-index: 4;
+  box-shadow: 8px 0 20px rgba(0,0,0,0.18);
+}
+
+.company-manpower-table th:not(:first-child),
+.company-manpower-table td:not(.company-designation-cell) {
+  min-width: 270px;
+}
+
+.company-manpower-table td:not(.company-designation-cell) {
+  vertical-align: top;
+}
+
+.company-manpower-table tbody tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+.company-designation-cell {
+  min-width: 180px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: rgba(255,255,255,0.02);
+  box-shadow: 8px 0 20px rgba(0,0,0,0.14);
+}
+
+.company-designation-name {
+  color: rgba(244,247,251,0.95);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.company-designation-meta {
+  margin-top: 5px;
+  color: rgba(244,247,251,0.58);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.company-project-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 16px;
+}
+
+.company-project-head strong {
+  color: rgba(244,247,251,0.96);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.company-project-head span {
+  color: #8ef0bf;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.company-project-th {
+  position: sticky;
+  top: 0;
+}
+
+.company-col-resizer {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 6;
+}
+
+.company-col-resizer::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 3px;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.company-project-th:hover .company-col-resizer::before,
+.company-project-th.company-col-resizing .company-col-resizer::before {
+  background: rgba(142,240,191,0.72);
+  box-shadow: 0 0 12px rgba(142,240,191,0.28);
+}
+
+.company-manpower-table tr:hover td {
+  background: rgba(255,255,255,0.028);
+}
+
+.company-manpower-table td.company-hover-row,
+.company-manpower-table td.company-hover-col,
+.company-manpower-table td.company-hover-cell {
+  background: rgba(255,255,255,0.032);
+}
+
+.company-manpower-table td.company-hover-row.company-designation-cell,
+.company-manpower-table td.company-hover-col.company-designation-cell,
+.company-manpower-table td.company-hover-cell.company-designation-cell {
+  background: rgba(255,255,255,0.05);
+}
+
+.company-manpower-table th.company-hover-col {
+  background: #0b1015;
+  box-shadow: inset 0 -2px 0 rgba(142,240,191,0.28);
+}
+
+.company-manpower-table td.company-hover-col,
+.company-manpower-table td.company-hover-cell {
+  box-shadow: inset 0 0 0 1px rgba(142,240,191,0.08);
+}
+
+.company-employee-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.company-employee-name {
+  color: rgba(244,247,251,0.94);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.company-employee-meta {
+  color: rgba(244,247,251,0.56);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.company-empty-slot {
+  display: block;
+  min-height: 0;
+  padding: 1px 0;
+  border: 0;
+  border-radius: 0;
+  color: rgba(244,247,251,0.18);
+  font-size: 14px;
+  font-weight: 800;
+  background: transparent;
+}
+
+.company-manpower-panel .panel-header {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.company-manpower-panel .panel-title {
+  letter-spacing: 0.01em;
+}
+
+.company-manpower-panel .panel-subtitle {
+  color: rgba(244,247,251,0.68);
+}
+
+.company-export-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(2, 4, 7, 0.62);
+  backdrop-filter: blur(8px);
+}
+
+.company-export-overlay[hidden] {
+  display: none;
+}
+
+.company-export-card {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: linear-gradient(180deg, rgba(13,18,22,0.98), rgba(8,11,15,0.98));
+  box-shadow: 0 24px 60px rgba(0,0,0,0.38);
+}
+
+.company-export-title {
+  color: rgba(244,247,251,0.95);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.company-export-subtitle {
+  color: rgba(244,247,251,0.62);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.company-export-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .manpower-empty {
