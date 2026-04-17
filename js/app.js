@@ -2,6 +2,8 @@
     const USERS_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc-users.json_';
     const MANPOWER_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc_manpower.json_';
     const COMPANY_MANPOWER_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_apfc_manpowers.json_';
+    const EQUIPMENT_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_APFC-Equipment.json_';
+    const DAILY_REPORT_EQUIPMENT_URL = 'https://raw.githubusercontent.com/yasseralsebaee2/APFC-Data/refs/heads/main/_APFC-DilyReport-Rigs.json_';
     const ACCESS_REQUEST_EMAIL = 'yasser.alsebaee@granadaeurope.com';
     const DEFAULT_PROJECT = 'Titania';
     const AUTH_STORAGE_KEY = 'apfcDashboardAuth';
@@ -59,6 +61,7 @@
       timelinePreset7Btn: document.getElementById('timelinePreset7Btn'),
       timelinePreset14Btn: document.getElementById('timelinePreset14Btn'),
       timelinePreset30Btn: document.getElementById('timelinePreset30Btn'),
+      timelinePileSearch: document.getElementById('timelinePileSearch'),
       timelinePileList: document.getElementById('timelinePileList'),
       timelineTableBody: document.getElementById('timelineTableBody'),
       timelineScopeCount: document.getElementById('timelineScopeCount'),
@@ -93,6 +96,7 @@
       pageUtilization: document.getElementById('pageUtilization'),
       pageManpower: document.getElementById('pageManpower'),
       pageCompanyManpower: document.getElementById('pageCompanyManpower'),
+      pageCompanyAnalytics: document.getElementById('pageCompanyAnalytics'),
       pageTimeline: document.getElementById('pageTimeline'),
       pageCost: document.getElementById('pageCost'),
       costTableHeadRow: document.querySelector('.financial-table thead tr'),
@@ -118,6 +122,20 @@
       companyExportProjectSelect: document.getElementById('companyExportProjectSelect'),
       companyExportCancelBtn: document.getElementById('companyExportCancelBtn'),
       companyExportConfirmBtn: document.getElementById('companyExportConfirmBtn'),
+      companyAnalyticsDesignationSelect: document.getElementById('companyAnalyticsDesignationSelect'),
+      companyAnalyticsLayoutButtons: Array.from(document.querySelectorAll('#companyAnalyticsLayoutToggle button')),
+      companyAnalyticsScopeButtons: Array.from(document.querySelectorAll('#companyAnalyticsScopeToggle button')),
+      companyAnalyticsExecutiveView: document.getElementById('companyAnalyticsExecutiveView'),
+      companyAnalyticsHeatmapView: document.getElementById('companyAnalyticsHeatmapView'),
+      companyAnalyticsKpis: document.getElementById('companyAnalyticsKpis'),
+      companyProjectBars: document.getElementById('companyProjectBars'),
+      companyDesignationBars: document.getElementById('companyDesignationBars'),
+      companyHeatmapHead: document.getElementById('companyHeatmapHead'),
+      companyHeatmapBody: document.getElementById('companyHeatmapBody'),
+      companyShiftDonut: document.getElementById('companyShiftDonut'),
+      companyShiftDonutTotal: document.getElementById('companyShiftDonutTotal'),
+      companyShiftLegend: document.getElementById('companyShiftLegend'),
+      companyInsightsList: document.getElementById('companyInsightsList'),
       utilizationTableBody: document.getElementById('utilizationTableBody'),
       utilizationSvg: document.getElementById('utilizationSvg'),
       utilizationChartTag: document.getElementById('utilizationChartTag'),
@@ -142,6 +160,8 @@
     let rawRows = [];
     let manpowerRows = [];
     let companyManpowerRows = [];
+    let equipmentRegistryRows = [];
+    let dailyReportEquipmentRows = [];
     let usersDirectory = [];
     let currentUser = null;
     let selectedProject = DEFAULT_PROJECT;
@@ -153,6 +173,9 @@
     let companyManpowerScopeMode = 'filtered';
     let companyManpowerDesignationFilter = 'all';
     let companyManpowerColumnWidths = {};
+    let companyAnalyticsScopeMode = 'filtered';
+    let companyAnalyticsLayoutMode = 'overview';
+    let companyAnalyticsDesignationFilter = 'all';
     let utilizationMode = 'daily';
     let overviewDateMode = 'shift'; // shared reporting mode for Overview + Production only
     let prodState = {
@@ -169,6 +192,7 @@
       start: '',
       end: '',
       pile: 'all',
+      pileSearch: '',
       zoom: 1
     };
     let timelineTooltipEl = null;
@@ -192,7 +216,7 @@
 
     function isAllPlotsValue(value) {
       const normalized = normalizeText(value).toLowerCase();
-      return !normalized || normalized === '-' || normalized === '—' || normalized === 'all' || normalized === 'all plots' || normalized === 'all plot';
+      return !normalized || normalized === '-' || normalized === 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â' || normalized === 'all' || normalized === 'all plots' || normalized === 'all plot';
     }
 
     function isAllProjectsValue(value) {
@@ -280,7 +304,13 @@
       const items = Array.isArray(data) ? data : (!data || typeof data !== 'object' ? [] : [data.body, data.rows, data.items, data.data].find(Array.isArray) || []);
       return items.filter(row => {
         const keys = Object.keys(row || {}).map(key => key.toLowerCase());
-        return keys.includes('employee number') || keys.includes('employee name') || keys.includes('designation');
+        return (
+          keys.includes('employee number') ||
+          keys.includes('employee name') ||
+          keys.includes('employeenumber') ||
+          keys.includes('employeename') ||
+          keys.includes('designation')
+        );
       });
     }
 
@@ -309,17 +339,66 @@
 
     function sanitizeCompanyEmployee(row) {
       return {
-        employeeNumber: normalizeText(row['Employee Number'] || row.employeeNumber || row.employee_number),
-        employeeName: normalizeText(row['Employee Name'] || row.employeeName || row.employee_name),
+        employeeNumber: normalizeText(row['Employee Number'] || row.employeeNumber || row.employee_number || row.employeenumber),
+        employeeName: normalizeText(row['Employee Name'] || row.employeeName || row.employee_name || row.employeename),
         designation: normalizeText(row.Designation || row.designation),
         project: getCompanyProjectLabel(row.Project || row.project),
         projectRaw: normalizeText(row.Project || row.project),
         shift: normalizeText(row.Shift || row.shift),
-        campNumber: normalizeText(row['Camp Number'] || row.campNumber || row.camp_number),
-        roomNumber: normalizeText(row['Room Number'] || row.roomNumber || row.room_number),
-        joiningDate: normalizeText(row['Joining Date'] || row.joiningDate || row.joining_date),
+        campNumber: normalizeText(row['Camp Number'] || row.campNumber || row.camp_number || row.camp),
+        roomNumber: normalizeText(row['Room Number'] || row.roomNumber || row.room_number || row.room),
+        joiningDate: normalizeText(row['Joining Date'] || row.joiningDate || row.joining_date || row.joiningdate),
         remarks: normalizeText(row.Remarks || row.remarks)
       };
+    }
+
+    function extractEquipmentRegistryList(data) {
+      const items = Array.isArray(data) ? data : (!data || typeof data !== 'object' ? [] : [data.body, data.rows, data.items, data.data].find(Array.isArray) || []);
+      return items.filter(row => {
+        const keys = Object.keys(row || {}).map(key => key.toLowerCase());
+        return keys.includes('type') || keys.includes('project') || keys.includes('status') || keys.includes('rig');
+      });
+    }
+
+    function sanitizeEquipmentRegistryRow(row) {
+      return {
+        label: normalizeText(row.Rig || row.rig || row.name || row.Name),
+        type: normalizeText(row.type || row.Type),
+        project: getCompanyProjectLabel(row.project || row.Project),
+        projectRaw: normalizeText(row.project || row.Project),
+        status: normalizeText(row.status || row.Status),
+        plot: normalizeText(row.plot || row.Plot)
+      };
+    }
+
+    function extractDailyReportEquipmentList(data) {
+      const items = Array.isArray(data) ? data : (!data || typeof data !== 'object' ? [] : [data.body, data.rows, data.items, data.data].find(Array.isArray) || []);
+      return items.filter(row => {
+        const keys = Object.keys(row || {}).map(key => key.toLowerCase());
+        return keys.includes('date') && keys.includes('project') && (keys.includes('type') || keys.includes('rig'));
+      });
+    }
+
+    function sanitizeDailyReportEquipmentRow(row) {
+      return {
+        date: normalizeDateString(row.date || row.Date),
+        project: getCompanyProjectLabel(row.project || row.Project),
+        projectRaw: normalizeText(row.project || row.Project),
+        plot: normalizeText(row.plot || row.Plot),
+        contractor: normalizeText(row.contractor || row.Contractor),
+        label: normalizeText(row.rig || row.Rig || row.name || row.Name),
+        type: normalizeText(row.type || row.Type)
+      };
+    }
+
+    function getOverviewEquipmentRigCount(project = selectedProject) {
+      const targetProjectToken = getCompanyProjectToken(project || selectedProject || DEFAULT_PROJECT);
+      return equipmentRegistryRows
+        .map(sanitizeEquipmentRegistryRow)
+        .filter(item => normalizeText(item.type).toLowerCase() === 'rig')
+        .filter(item => normalizeText(item.status).toLowerCase() === 'active')
+        .filter(item => getCompanyProjectToken(item.projectRaw || item.project) === targetProjectToken)
+        .length;
     }
 
     function getScopeLabel() {
@@ -331,7 +410,7 @@
     function getScopeSubtitle() {
       if (!selectedProject) return 'Project Dashboard';
       if (isAllPlotsValue(selectedPlot)) return `Project ${selectedProject}`;
-      return `Project ${selectedProject} • Plot ${selectedPlot}`;
+      return `Project ${selectedProject} / Plot ${selectedPlot}`;
     }
 
     function isManagerUser() {
@@ -541,6 +620,9 @@
       timelineState.pile = 'all';
       companyManpowerScopeMode = 'filtered';
       companyManpowerDesignationFilter = 'all';
+      companyAnalyticsScopeMode = 'filtered';
+      companyAnalyticsLayoutMode = 'overview';
+      companyAnalyticsDesignationFilter = 'all';
       updateUserContextUi();
       if (currentUser) {
         persistScopedSession();
@@ -610,37 +692,37 @@
 
 
     function formatDateLabel(value) {
-      if (!value) return 'Ã¢â‚¬â€';
+      if (!value) return 'N/A';
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return 'Ã¢â‚¬â€';
+      if (Number.isNaN(d.getTime())) return 'N/A';
       return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'UTC' });
     }
 
     function formatDateFullLabel(value) {
-      if (!value) return 'Ã¢â‚¬â€';
+      if (!value) return 'N/A';
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return 'Ã¢â‚¬â€';
+      if (Number.isNaN(d.getTime())) return 'N/A';
       return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
     }
 
     function formatShortDateLabel(value) {
-      if (!value) return 'Ã¢â‚¬â€';
+      if (!value) return 'N/A';
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return 'Ã¢â‚¬â€';
+      if (Number.isNaN(d.getTime())) return 'N/A';
       return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' });
     }
 
     function formatDayNumberLabel(value) {
-      if (!value) return 'Ã¢â‚¬â€';
+      if (!value) return 'N/A';
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return 'Ã¢â‚¬â€';
+      if (Number.isNaN(d.getTime())) return 'N/A';
       return String(d.getUTCDate());
     }
 
     function formatMonthShortLabel(value) {
-      if (!value) return 'Ã¢â‚¬â€';
+      if (!value) return 'N/A';
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return 'Ã¢â‚¬â€';
+      if (Number.isNaN(d.getTime())) return 'N/A';
       return d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
     }
 
@@ -692,7 +774,7 @@
     }
 
     function metricUnit(metric) {
-      return metric === 'piles' ? 'piles' : metric === 'lm' ? 'Lm' : 'mÃ‚Â³';
+      return metric === 'piles' ? 'piles' : metric === 'lm' ? 'Lm' : 'mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³';
     }
 
     function metricValueForRow(row, metric) {
@@ -798,7 +880,7 @@
 
     function periodTitle(dateKey) {
       if (chartGranularity === 'day') return formatDateLabel(dateKey);
-      if (chartGranularity === 'week') return getCW(dateKey) + ' Ã‚Â· ' + formatDateLabel(dateKey);
+      if (chartGranularity === 'week') return getCW(dateKey) + ' ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ' + formatDateLabel(dateKey);
       return new Date(dateKey + 'T00:00:00Z').toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
     }
 
@@ -925,9 +1007,10 @@
 
       const yesterdayExecuted = aggregateDailyMetrics(rows, 'piles').find(x => x.date === previousDayKey())?.executedCount || 0;
       const latestCasting = executedRows.map(r => normalizeDateString(r.castingDate)).filter(Boolean).sort().pop() || '';
-      let activeRigs = new Set(executedRows.map(r => normalizeText(r.machine)).filter(Boolean)).size;
-      const fixedRigCount = getOverviewRigOverride(projectKey);
-      if (fixedRigCount !== null) activeRigs = fixedRigCount;
+      let activeRigs = getOverviewEquipmentRigCount(project);
+      if (!activeRigs) {
+        activeRigs = new Set(executedRows.map(r => normalizeText(r.machine)).filter(Boolean)).size;
+      }
       let etaDate = '';
       let etaMonths = null;
       if (remaining > 0 && avgPilesRaw > 0) {
@@ -1012,6 +1095,7 @@
       if (els.pageUtilization) els.pageUtilization.classList.toggle('active', page === 'utilization');
       if (els.pageManpower) els.pageManpower.classList.toggle('active', page === 'manpower');
       if (els.pageCompanyManpower) els.pageCompanyManpower.classList.toggle('active', page === 'companymanpower');
+      if (els.pageCompanyAnalytics) els.pageCompanyAnalytics.classList.toggle('active', page === 'companyanalytics');
       els.pageTimeline.classList.toggle('active', page === 'timeline');
       if (els.pageCost) els.pageCost.classList.toggle('active', page === 'cost');
       els.kpiRow.style.display = page === 'overview' ? 'grid' : 'none';
@@ -1033,6 +1117,7 @@
       if (page === 'utilization') renderUtilizationPage(selectedProject);
       if (page === 'manpower') renderManpowerPage(selectedProject);
       if (page === 'companymanpower') renderCompanyManpowerPage(selectedProject);
+      if (page === 'companyanalytics') renderCompanyAnalyticsPage(selectedProject);
       if (page === 'timeline') renderTimelinePage(selectedProject, true);
       if (page === 'cost') renderCostPage(selectedProject, true);
     }
@@ -1899,12 +1984,12 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       els.kpiAvg.textContent = stats.avgPiles ? stats.avgPiles.toLocaleString() + ' pile/d' : '0 pile/d';
       if (els.kpiAvgMetaL) els.kpiAvgMetaL.textContent = stats.avgLm ? stats.avgLm.toLocaleString() + ' Lm' : '0 Lm';
       els.kpiAvgMeta.textContent = avgBasisLabel;
-      els.kpiEta.textContent = stats.etaDate ? formatDateLabel(stats.etaDate) : 'Ã¢â‚¬â€';
+      els.kpiEta.textContent = stats.etaDate ? formatDateLabel(stats.etaDate) : 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â';
       els.kpiTotalMetaR.textContent = 'Live';
       els.kpiCompletedMetaL.textContent = `${stats.progress.toFixed(1)}% executed`;
       els.kpiCompletedMetaR.textContent = `${stats.yesterdayExecuted} yesterday`;
       els.kpiRemainingMetaR.textContent = `${(100 - stats.progress).toFixed(1)}%`;
-      els.kpiEtaDays.textContent = stats.etaMonths !== null ? `${stats.etaMonths.toFixed(1)} mo` : 'Ã¢â‚¬â€';
+      els.kpiEtaDays.textContent = stats.etaMonths !== null ? `${stats.etaMonths.toFixed(1)} mo` : 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â';
       renderChart(rows, project);
       renderExecutionMatrix(rows);
       if (activePage === 'production') renderProductionPage(project);
@@ -1941,15 +2026,37 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         companyManpowerRows = [];
       }
 
+      try {
+        const equipmentRes = await fetch(EQUIPMENT_URL, { cache: 'no-store' });
+        if (!equipmentRes.ok) throw new Error(`HTTP ${equipmentRes.status}`);
+        const equipmentData = await equipmentRes.json();
+        equipmentRegistryRows = extractEquipmentRegistryList(equipmentData);
+      } catch (err) {
+        console.error('Unable to load equipment registry source:', err);
+        equipmentRegistryRows = [];
+      }
+
+      try {
+        const dailyReportEquipmentRes = await fetch(DAILY_REPORT_EQUIPMENT_URL, { cache: 'no-store' });
+        if (!dailyReportEquipmentRes.ok) throw new Error(`HTTP ${dailyReportEquipmentRes.status}`);
+        const dailyReportEquipmentData = await dailyReportEquipmentRes.json();
+        dailyReportEquipmentRows = extractDailyReportEquipmentList(dailyReportEquipmentData);
+      } catch (err) {
+        console.error('Unable to load daily report equipment source:', err);
+        dailyReportEquipmentRows = [];
+      }
+
       syncProjectScopeFromData();
       broadcastAuthContext();
       updateCompanyExportProjectOptions();
       updateCompanyDesignationOptions();
+      updateCompanyAnalyticsDesignationOptions();
 
       renderDashboard(selectedProject);
       if (activePage === 'utilization') renderUtilizationPage(selectedProject);
       if (activePage === 'manpower') renderManpowerPage(selectedProject);
       if (activePage === 'companymanpower') renderCompanyManpowerPage(selectedProject);
+      if (activePage === 'companyanalytics') renderCompanyAnalyticsPage(selectedProject);
       els.dataSourceChip.textContent = 'Live Data Source';
     }
 
@@ -1996,8 +2103,13 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       return Number.isFinite(diff) && diff >= 0 ? diff : null;
     }
 
+    function signedHoursBetween(start, end) {
+      if (!(start instanceof Date) || !(end instanceof Date)) return null;
+      const diff = (end.getTime() - start.getTime()) / 36e5;
+      return Number.isFinite(diff) ? diff : null;
+    }
     function formatDateTimeLabel(value) {
-      if (!(value instanceof Date) || Number.isNaN(value.getTime())) return 'Ã¢â‚¬â€';
+      if (!(value instanceof Date) || Number.isNaN(value.getTime())) return 'N/A';
       return value.toLocaleString('en-GB', {
         day: '2-digit',
         month: 'short',
@@ -2005,16 +2117,16 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
-        timeZone: 'UTC'
+        timeZone: 'Asia/Dubai'
       });
     }
 
     function formatTimelineHeaderDate(value) {
-      if (!(value instanceof Date) || Number.isNaN(value.getTime())) return 'Ã¢â‚¬â€';
+      if (!(value instanceof Date) || Number.isNaN(value.getTime())) return 'N/A';
       return value.toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',
-        timeZone: 'UTC'
+        timeZone: 'Asia/Dubai'
       });
     }
 
@@ -2037,8 +2149,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
         if (!activities.length) return null;
 
-        const gap1 = drillEnd && cageStart ? hoursBetween(drillEnd, cageStart) : null;
-        const gap2 = cageEnd && pourStart ? hoursBetween(cageEnd, pourStart) : null;
+        const gap1 = drillEnd && cageStart ? signedHoursBetween(drillEnd, cageStart) : null;
+        const gap2 = cageEnd && pourStart ? signedHoursBetween(cageEnd, pourStart) : null;
         const gross = Number(row.asbuilt_durationgross) || (drillStart && pourEnd ? hoursBetween(drillStart, pourEnd) : null) || 0;
         const designDepth = Number(row.design_depth);
         const asbuiltDepth = Number(row.asbuilt_depth);
@@ -2100,8 +2212,19 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
     function updateTimelinePileList(project) {
       if (!els.timelinePileList) return;
-      const rows = getTimelineRowsForPileFilter(project);
-      const pileIds = rows.map(r => r.id);
+      const rows = getTimelineRowsForPileFilter(project).slice().sort((a, b) => {
+        const dateDiff = b.maxEnd.getTime() - a.maxEnd.getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return a.id.localeCompare(b.id, undefined, { numeric: true });
+      });
+      const searchRaw = normalizeText(timelineState.pileSearch).toLowerCase();
+      const searchNeedle = searchRaw.startsWith('p') ? searchRaw : `p${searchRaw}`;
+      const filteredRows = rows.filter(row => {
+        if (!searchRaw) return true;
+        const id = normalizeText(row.id).toLowerCase();
+        return id.includes(searchRaw) || id.includes(searchNeedle);
+      });
+      const pileIds = filteredRows.map(r => r.id);
 
       if (timelineState.pile !== 'all' && !pileIds.includes(timelineState.pile)) {
         timelineState.pile = 'all';
@@ -2138,8 +2261,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           <td>${formatNumberOneDecimal(item.drilling)} hr</td>
           <td>${formatNumberOneDecimal(item.cage)} hr</td>
           <td>${formatNumberOneDecimal(item.pouring)} hr</td>
-          <td>${Number.isFinite(item.gap1) ? `${formatNumberOneDecimal(item.gap1)} hr` : 'Ã¢â‚¬â€'}</td>
-          <td>${Number.isFinite(item.gap2) ? `${formatNumberOneDecimal(item.gap2)} hr` : 'Ã¢â‚¬â€'}</td>
+          <td>${Number.isFinite(item.gap1) ? `${formatNumberOneDecimal(item.gap1)} hr` : '-'}</td>
+          <td>${Number.isFinite(item.gap2) ? `${formatNumberOneDecimal(item.gap2)} hr` : '-'}</td>
           <td>${formatNumberOneDecimal(item.gross)} hr</td>
         </tr>
       `).join('');
@@ -2153,7 +2276,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       };
 
       const label = timelineState.start || timelineState.end
-        ? `${timelineState.start || 'Ã¢â‚¬Â¦'} Ã¢â€ â€™ ${timelineState.end || 'Ã¢â‚¬Â¦'}`
+        ? `${timelineState.start || '...'} to ${timelineState.end || '...'}`
         : 'Total / All Dates';
 
       els.timelineSummarySubtitle.textContent = `Current scope: ${label}`;
@@ -2428,8 +2551,9 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           hit.setAttribute('height', laneHeight - 12);
           hit.setAttribute('fill', 'transparent');
           hit.style.cursor = 'pointer';
-          const html = `<div class="tooltip-title">${pile.id} Ã‚Â· ${activity.label}</div><div class="tooltip-row"><span>Start</span><strong>${formatDateTimeLabel(activity.start)}</strong></div><div class="tooltip-row"><span>End</span><strong>${formatDateTimeLabel(activity.end)}</strong></div><div class="tooltip-row"><span>Duration</span><strong>${formatNumberOneDecimal(duration)} hr</strong></div>`;
-          hit.addEventListener('mousemove', evt => showTimelineTooltip(evt, html));
+          const html = `<div class="tooltip-title">${pile.id} | ${activity.label}</div><div class="tooltip-row"><span>Start</span><strong>${formatDateTimeLabel(activity.start)}</strong></div><div class="tooltip-row"><span>End</span><strong>${formatDateTimeLabel(activity.end)}</strong></div><div class="tooltip-row"><span>Duration</span><strong>${formatNumberOneDecimal(duration)} hr</strong></div>`;
+          hit.addEventListener('pointerenter', evt => showTimelineTooltip(evt, html));
+          hit.addEventListener('pointermove', evt => showTimelineTooltip(evt, html));
           hit.addEventListener('mouseleave', hideTimelineTooltip);
           svg.appendChild(hit);
 
@@ -2787,23 +2911,63 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       const vbRental = 3250; // Updated vibro+powerpack rate
       const craneRental = 1100;
       const projectKey = normalizeText(project).toLowerCase();
+      const normalizedSelectedPlot = normalizeText(selectedPlot);
+      const getDailyReportEquipmentCountsForDate = (dateKey = '') => {
+        const normalizedDate = normalizeDateString(dateKey);
+        if (!normalizedDate) return null;
+        const targetProjectToken = getCompanyProjectToken(project);
+        const matches = dailyReportEquipmentRows
+          .map(sanitizeDailyReportEquipmentRow)
+          .filter(item => item.date === normalizedDate)
+          .filter(item => getCompanyProjectToken(item.projectRaw || item.project) === targetProjectToken)
+          .filter(item => {
+            if (isAllPlotsValue(normalizedSelectedPlot)) return true;
+            const rowPlot = normalizeText(item.plot);
+            return rowPlot === normalizedSelectedPlot || isAllPlotsValue(rowPlot);
+          });
+
+        if (!matches.length) return null;
+
+        const rigSet = new Set();
+        const craneSet = new Set();
+        const vbSet = new Set();
+
+        matches.forEach(item => {
+          const typeKey = normalizeText(item.type).toLowerCase();
+          const labelKey = normalizeText(item.label) || `${typeKey}-${item.date}`;
+          if (typeKey === 'rig') {
+            rigSet.add(labelKey);
+          } else if (typeKey === 'crane') {
+            craneSet.add(labelKey);
+          } else if (typeKey === 'vibrator') {
+            vbSet.add(labelKey);
+          }
+        });
+
+        return {
+          rig: rigSet.size,
+          vb: vbSet.size,
+          crane: craneSet.size
+        };
+      };
       const getEquipmentCountsForDate = (dateKey = '') => {
         const normalizedDate = normalizeDateString(dateKey);
-        if (projectKey === 'vintage') {
-          return {
-            rig: 1,
-            vb: 0,
-            crane: normalizedDate && normalizedDate >= '2026-04-08' ? 1 : 0
-          };
+        const dailyReportCounts = getDailyReportEquipmentCountsForDate(normalizedDate);
+        if (dailyReportCounts) return dailyReportCounts;
+        if (projectKey !== 'titania') {
+          return { rig: 0, vb: 0, crane: 0 };
+        }
+        if (normalizedDate && normalizedDate >= '2026-04-03') {
+          return { rig: 0, vb: 0, crane: 0 };
         }
         if (projectKey === 'titania') {
           return {
-            rig: normalizedDate && normalizedDate >= '2026-04-03' ? 2 : 1,
+            rig: 1,
             vb: 1,
             crane: 1
           };
         }
-        return { rig: 1, vb: 0, crane: 0 };
+        return { rig: 0, vb: 0, crane: 0 };
       };
       const equipmentCounts = getEquipmentCountsForDate(lastDayDateKey);
 
@@ -3555,74 +3719,69 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       svg.onmouseleave = hideTooltip;
     }
 
-    function getProjectEquipmentDefinitions(project) {
-      const projectKey = normalizeText(project || selectedProject || DEFAULT_PROJECT).toLowerCase();
-      const definitions = {
-        titania: [
-          { ownership: 'Owned', category: 'rig', label: 'Sany SR285 #3', start: 'project-start', color: '#8ef0bf' },
-          { ownership: 'Owned', category: 'rig', label: 'Sany SR285 #4', start: '2026-04-03', color: '#7bb6ff' },
-          { ownership: 'Owned', category: 'crane', label: 'Sany CR203', start: 'project-start', color: '#f1d48b' },
-          { ownership: 'Rented', category: 'vibrator', label: 'Vibrator', start: 'project-start', color: '#f5a6b8' }
-        ],
-        vintage: [
-          { ownership: 'Owned', category: 'rig', label: 'Sany SR285 #5', start: 'project-start', color: '#8ef0bf' },
-          { ownership: 'Owned', category: 'crane', label: 'Sany CR205', start: 'project-start', color: '#f1d48b' }
-        ]
-      };
-      return definitions[projectKey] ? definitions[projectKey].map(item => ({ ...item })) : [];
-    }
-
     function getProjectEquipmentDateRows(project) {
-      const equipment = getProjectEquipmentDefinitions(project);
       const projectManpowerRows = getFilteredManpowerRows(project);
-      const allDateKeys = new Set();
+      const manpowerDateKeys = Array.from(new Set(
+        projectManpowerRows
+          .map(row => normalizeDateString(row?.date))
+          .filter(Boolean)
+      )).sort();
+      if (!manpowerDateKeys.length) return [];
 
-      projectManpowerRows.forEach(row => {
-        const dateKey = normalizeDateString(row?.date);
-        if (dateKey) allDateKeys.add(dateKey);
-      });
-
-      const sortedDates = Array.from(allDateKeys).sort();
-      const projectStartDate = sortedDates[0] || normalizeDateString(new Date().toISOString());
-
-      const resolvedEquipment = equipment.map(item => ({
-        ...item,
-        start: item.start === 'project-start' ? projectStartDate : item.start
-      }));
-
-      resolvedEquipment.forEach(item => {
-        const dateKey = normalizeDateString(item.start);
-        if (dateKey) allDateKeys.add(dateKey);
-      });
-
-      const fullSortedDates = Array.from(allDateKeys).sort();
-      if (!fullSortedDates.length || !resolvedEquipment.length) return [];
-
-      const startDate = fullSortedDates[0];
-      const endDate = fullSortedDates[fullSortedDates.length - 1];
-      const rows = [];
-
-      let cursor = new Date(`${startDate}T00:00:00Z`);
-      const end = new Date(`${endDate}T00:00:00Z`);
-
-      while (cursor <= end) {
-        const dateKey = cursor.toISOString().slice(0, 10);
-        const activeItems = resolvedEquipment.filter(item => normalizeDateString(item.start) <= dateKey);
-        const ownedRigs = activeItems.filter(item => item.ownership === 'Owned' && item.category === 'rig').length;
-        const ownedCranes = activeItems.filter(item => item.ownership === 'Owned' && item.category === 'crane').length;
-        const rentedEq = activeItems.filter(item => item.ownership === 'Rented').length;
-        rows.push({
-          date: dateKey,
-          ownedRigs,
-          ownedCranes,
-          rentedEq,
-          total: ownedRigs + ownedCranes + rentedEq,
-          activeItems
+      const targetProjectToken = getCompanyProjectToken(project || selectedProject || DEFAULT_PROJECT);
+      const normalizedSelectedPlot = normalizeText(selectedPlot);
+      const equipmentRows = dailyReportEquipmentRows
+        .map(sanitizeDailyReportEquipmentRow)
+        .filter(item => manpowerDateKeys.includes(item.date))
+        .filter(item => getCompanyProjectToken(item.projectRaw || item.project) === targetProjectToken)
+        .filter(item => {
+          if (isAllPlotsValue(normalizedSelectedPlot)) return true;
+          const rowPlot = normalizeText(item.plot);
+          return rowPlot === normalizedSelectedPlot || isAllPlotsValue(rowPlot);
         });
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
-      }
 
-      return rows;
+      const colorByCategory = {
+        rig: '#8ef0bf',
+        crane: '#f1d48b',
+        vibrator: '#f5a6b8'
+      };
+
+      return manpowerDateKeys.map(dateKey => {
+        const itemsForDate = equipmentRows
+          .filter(item => item.date === dateKey)
+          .filter(item => {
+            const typeKey = normalizeText(item.type).toLowerCase();
+            return typeKey === 'rig' || typeKey === 'crane' || typeKey === 'vibrator';
+          })
+          .reduce((acc, item) => {
+            const typeKey = normalizeText(item.type).toLowerCase();
+            const labelKey = normalizeText(item.label);
+            const dedupeKey = `${typeKey}::${labelKey}`;
+            if (acc.some(existing => existing._dedupeKey === dedupeKey)) return acc;
+            const ownership = normalizeText(item.contractor).toLowerCase() === 'apfc' ? 'Owned' : 'Rented';
+            acc.push({
+              _dedupeKey: dedupeKey,
+              ownership,
+              category: typeKey,
+              label: item.label || typeKey,
+              color: colorByCategory[typeKey] || '#9ca3af'
+            });
+            return acc;
+          }, []);
+
+        const rigs = itemsForDate.filter(item => item.category === 'rig').length;
+        const cranes = itemsForDate.filter(item => item.category === 'crane').length;
+        const others = itemsForDate.filter(item => item.category !== 'rig' && item.category !== 'crane').length;
+
+        return {
+          date: dateKey,
+          ownedRigs: rigs,
+          ownedCranes: cranes,
+          rentedEq: others,
+          total: rigs + cranes + others,
+          activeItems: itemsForDate.map(({ _dedupeKey, ...item }) => item)
+        };
+      });
     }
 
     function getCompanyProjectOrder() {
@@ -3654,6 +3813,24 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       companyManpowerDesignationFilter = els.companyManpowerDesignationSelect.value;
     }
 
+    function updateCompanyAnalyticsDesignationOptions() {
+      if (!els.companyAnalyticsDesignationSelect) return;
+      const designations = Array.from(new Set(
+        companyManpowerRows
+          .map(sanitizeCompanyEmployee)
+          .map(employee => employee.designation)
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b));
+
+      const currentValue = companyAnalyticsDesignationFilter || 'all';
+      els.companyAnalyticsDesignationSelect.innerHTML = [
+        '<option value="all">All Designations</option>',
+        ...designations.map(designation => `<option value="${escapeHtml(designation)}">${escapeHtml(designation)}</option>`)
+      ].join('');
+      els.companyAnalyticsDesignationSelect.value = designations.includes(currentValue) ? currentValue : 'all';
+      companyAnalyticsDesignationFilter = els.companyAnalyticsDesignationSelect.value;
+    }
+
     function getCompanyColumnWidth(projectName) {
       return companyManpowerColumnWidths[projectName] || 320;
     }
@@ -3676,6 +3853,18 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           return getCompanyProjectToken(employee.projectRaw || employee.project) === targetProjectToken;
         })
         .filter(employee => companyManpowerDesignationFilter === 'all' || employee.designation === companyManpowerDesignationFilter);
+    }
+
+    function getAnalyticsCompanyEmployees(project = selectedProject) {
+      const targetProjectToken = getCompanyProjectToken(project || selectedProject || DEFAULT_PROJECT);
+      return companyManpowerRows
+        .map(sanitizeCompanyEmployee)
+        .filter(employee => employee.employeeName && employee.designation)
+        .filter(employee => {
+          if (companyAnalyticsScopeMode === 'all') return true;
+          return getCompanyProjectToken(employee.projectRaw || employee.project) === targetProjectToken;
+        })
+        .filter(employee => companyAnalyticsDesignationFilter === 'all' || employee.designation === companyAnalyticsDesignationFilter);
     }
 
     function getCompanyProjectColumns(project = selectedProject) {
@@ -3842,7 +4031,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
       if (els.companyManpowerSummaryMeta) {
         const scopeText = companyManpowerScopeMode === 'all' ? 'All projects' : `Filtered by ${project}`;
-        els.companyManpowerSummaryMeta.textContent = `${scopeText} • ${projects.length} project column${projects.length === 1 ? '' : 's'} • ${totalEmployees} employee${totalEmployees === 1 ? '' : 's'}`;
+        els.companyManpowerSummaryMeta.textContent = `${scopeText} | ${projects.length} project column${projects.length === 1 ? '' : 's'} | ${totalEmployees} employee${totalEmployees === 1 ? '' : 's'}`;
       }
 
       if (els.companyManpowerHeadRow) {
@@ -3867,7 +4056,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           const cells = projects.map(projectName => {
             const employee = (group.projectMap.get(projectName) || [])[rowIndex];
             if (!employee) {
-              return '<td data-company-col="' + escapeHtml(projectName) + '"><div class="company-empty-slot">—</div></td>';
+              return '<td data-company-col="' + escapeHtml(projectName) + '"><div class="company-empty-slot">-</div></td>';
             }
             return `
               <td data-company-col="${escapeHtml(projectName)}">
@@ -3972,6 +4161,188 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', stopDrag);
       table.dataset.resizeBound = 'true';
+    }
+
+    function buildCountMap(items, getter) {
+      const map = new Map();
+      items.forEach(item => {
+        const key = getter(item);
+        if (!key) return;
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+      return map;
+    }
+
+    function renderRankBars(container, entries, formatter = value => String(value), emptyLabel = 'No data available') {
+      if (!container) return;
+      if (!entries.length) {
+        container.innerHTML = `<div class="company-analytics-empty">${emptyLabel}</div>`;
+        return;
+      }
+      const maxValue = Math.max(...entries.map(entry => entry.value), 1);
+      container.innerHTML = entries.map(entry => {
+        const width = Math.max(8, (entry.value / maxValue) * 100);
+        return `
+          <div class="company-rank-row">
+            <div class="company-rank-meta">
+              <span class="company-rank-label">${escapeHtml(entry.label)}</span>
+              <strong class="company-rank-value">${escapeHtml(formatter(entry.value))}</strong>
+            </div>
+            <div class="company-rank-bar-shell">
+              <div class="company-rank-bar" style="width:${width}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCompanyHeatmap(projectCountsByDesignation, projectOrder) {
+      if (!els.companyHeatmapHead || !els.companyHeatmapBody) return;
+      const designationNames = Array.from(projectCountsByDesignation.keys()).sort((a, b) => a.localeCompare(b));
+      const maxValue = Math.max(1, ...designationNames.flatMap(name => projectOrder.map(project => projectCountsByDesignation.get(name)?.get(project) || 0)));
+
+      els.companyHeatmapHead.innerHTML = [
+        '<th>Designation</th>',
+        ...projectOrder.map(project => `<th>${escapeHtml(project)}</th>`)
+      ].join('');
+
+      if (!designationNames.length || !projectOrder.length) {
+        els.companyHeatmapBody.innerHTML = '<tr><td colspan="2" class="manpower-empty">No manpower heatmap data available.</td></tr>';
+        return;
+      }
+
+      els.companyHeatmapBody.innerHTML = designationNames.map(name => {
+        const cells = projectOrder.map(project => {
+          const value = projectCountsByDesignation.get(name)?.get(project) || 0;
+          const alpha = value <= 0 ? 0.04 : (0.12 + (value / maxValue) * 0.62);
+          const color = `rgba(142,240,191,${alpha.toFixed(3)})`;
+          return `<td style="background:${color};">${value > 0 ? value : '-'}</td>`;
+        }).join('');
+        return `<tr><td>${escapeHtml(name)}</td>${cells}</tr>`;
+      }).join('');
+    }
+
+    function renderCompanyShiftDonut(shiftEntries, total) {
+      const svg = els.companyShiftDonut;
+      if (!svg || !els.companyShiftLegend || !els.companyShiftDonutTotal) return;
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      els.companyShiftDonutTotal.textContent = total.toLocaleString();
+
+      if (!shiftEntries.length || total <= 0) {
+        els.companyShiftLegend.innerHTML = '<div class="company-analytics-empty">No shift mix available.</div>';
+        return;
+      }
+
+      const colors = ['#8ef0bf', '#7ab8ff', '#f5c977', '#f4a5c3', '#d5d9ff'];
+      let angle = -Math.PI / 2;
+      const cx = 140;
+      const cy = 140;
+      const outerR = 104;
+      const innerR = 68;
+
+      shiftEntries.forEach((entry, index) => {
+        const slice = (entry.value / total) * Math.PI * 2;
+        const next = angle + slice;
+        const x1 = cx + Math.cos(angle) * outerR;
+        const y1 = cy + Math.sin(angle) * outerR;
+        const x2 = cx + Math.cos(next) * outerR;
+        const y2 = cy + Math.sin(next) * outerR;
+        const ix1 = cx + Math.cos(next) * innerR;
+        const iy1 = cy + Math.sin(next) * innerR;
+        const ix2 = cx + Math.cos(angle) * innerR;
+        const iy2 = cy + Math.sin(angle) * innerR;
+        const largeArc = slice > Math.PI ? 1 : 0;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x1} ${y1} A ${outerR} ${outerR} 0 ${largeArc} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2} ${iy2} Z`);
+        path.setAttribute('fill', colors[index % colors.length]);
+        path.setAttribute('stroke', 'rgba(9,13,18,0.92)');
+        path.setAttribute('stroke-width', '2');
+        svg.appendChild(path);
+        angle = next;
+      });
+
+      els.companyShiftLegend.innerHTML = shiftEntries.map((entry, index) => `
+        <div class="company-donut-legend-item">
+          <span class="company-donut-legend-swatch" style="background:${colors[index % colors.length]}"></span>
+          <span>${escapeHtml(entry.label)}</span>
+          <strong>${entry.value}</strong>
+        </div>
+      `).join('');
+    }
+
+    function renderCompanyInsights(items, totalHeadcount, projectEntries, designationEntries, shiftEntries) {
+      if (!els.companyInsightsList) return;
+      const insights = [];
+      if (projectEntries[0]) insights.push(`${projectEntries[0].label} carries the largest workforce with ${projectEntries[0].value} staff.`);
+      if (designationEntries[0]) insights.push(`${designationEntries[0].label} is the largest designation at ${designationEntries[0].value} staff.`);
+      if (shiftEntries[0]) insights.push(`${shiftEntries[0].label} shift represents ${Math.round((shiftEntries[0].value / Math.max(totalHeadcount, 1)) * 100)}% of the current manpower pool.`);
+      const projectsWithoutLeadership = projectEntries
+        .map(entry => entry.label)
+        .filter(project => !items.some(item => item.project === project && /manager|engineer|foreman|supervisor/i.test(item.designation)));
+      if (projectsWithoutLeadership.length) insights.push(`${projectsWithoutLeadership.slice(0, 3).join(', ')} show no visible leadership roles in the current filtered roster.`);
+
+      els.companyInsightsList.innerHTML = insights.length
+        ? insights.map(text => `<div class="company-insight-card">${escapeHtml(text)}</div>`).join('')
+        : '<div class="company-analytics-empty">No notable workforce insights in the current scope.</div>';
+    }
+
+    function renderCompanyAnalyticsPage(project = selectedProject) {
+      const items = getAnalyticsCompanyEmployees(project);
+      const totalHeadcount = items.length;
+      const projectCounts = buildCountMap(items, item => item.project);
+      const designationCounts = buildCountMap(items, item => item.designation);
+      const shiftCounts = buildCountMap(items, item => item.shift || 'Unspecified');
+      const projectEntries = Array.from(projectCounts.entries()).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+      const designationEntries = Array.from(designationCounts.entries()).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+      const shiftEntries = Array.from(shiftCounts.entries()).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+      const projectOrder = Array.from(projectCounts.keys()).sort((a, b) => projectEntries.findIndex(entry => entry.label === a) - projectEntries.findIndex(entry => entry.label === b));
+      const projectCountsByDesignation = new Map();
+
+      items.forEach(item => {
+        if (!projectCountsByDesignation.has(item.designation)) projectCountsByDesignation.set(item.designation, new Map());
+        const designationMap = projectCountsByDesignation.get(item.designation);
+        designationMap.set(item.project, (designationMap.get(item.project) || 0) + 1);
+      });
+
+      if (els.companyAnalyticsDesignationSelect && els.companyAnalyticsDesignationSelect.value !== companyAnalyticsDesignationFilter) {
+        els.companyAnalyticsDesignationSelect.value = companyAnalyticsDesignationFilter;
+      }
+      els.companyAnalyticsLayoutButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.companyAnalyticsLayout === companyAnalyticsLayoutMode));
+      els.companyAnalyticsScopeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.companyAnalyticsScope === companyAnalyticsScopeMode));
+
+      if (els.companyAnalyticsExecutiveView) {
+        els.companyAnalyticsExecutiveView.hidden = companyAnalyticsLayoutMode !== 'overview';
+        els.companyAnalyticsExecutiveView.style.display = companyAnalyticsLayoutMode === 'overview' ? 'grid' : 'none';
+      }
+      if (els.companyAnalyticsHeatmapView) {
+        els.companyAnalyticsHeatmapView.hidden = companyAnalyticsLayoutMode !== 'heatmap';
+        els.companyAnalyticsHeatmapView.style.display = companyAnalyticsLayoutMode === 'heatmap' ? 'grid' : 'none';
+      }
+
+      if (els.companyAnalyticsKpis) {
+        const topProject = projectEntries[0];
+        const topDesignation = designationEntries[0];
+        const dayShare = shiftCounts.get('Day') || shiftCounts.get('day') || 0;
+        const midShare = shiftCounts.get('Mid') || shiftCounts.get('mid') || 0;
+        const nightShare = shiftCounts.get('Night') || shiftCounts.get('night') || 0;
+        const kpis = [
+          { label: 'Total Headcount', value: totalHeadcount.toLocaleString(), meta: '' },
+          { label: 'Shift Split', value: `${dayShare} / ${midShare} / ${nightShare}`, meta: 'Day / Mid / Night' },
+          { label: 'Top Designation', value: topDesignation ? topDesignation.label : '-', meta: topDesignation ? `${topDesignation.value} staff` : 'No data' },
+          { label: 'Largest Project', value: topProject ? topProject.label : '-', meta: topProject ? `${topProject.value} staff` : 'No data' }
+        ];
+        els.companyAnalyticsKpis.innerHTML = kpis.map(kpi => `
+          <div class="company-analytics-kpi">
+            <div class="company-analytics-kpi-label">${escapeHtml(kpi.label)}</div>
+            <div class="company-analytics-kpi-value">${escapeHtml(kpi.value)}</div>
+            ${kpi.meta ? `<div class="company-analytics-kpi-meta">${escapeHtml(kpi.meta)}</div>` : ''}
+          </div>
+        `).join('');
+      }
+
+      renderRankBars(els.companyProjectBars, projectEntries, value => `${value} staff`, 'No project headcount available.');
+      renderRankBars(els.companyDesignationBars, designationEntries, value => `${value} staff`, 'No designation headcount available.');
+      renderCompanyHeatmap(projectCountsByDesignation, projectOrder);
     }
 
     function renderEquipmentHistogram(rows) {
@@ -4422,7 +4793,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           ${points.map(point => `
             <div class="tooltip-row">
               <span>${escapeHtml(point.rig)}</span>
-              <strong>${Number.isFinite(utilizationMode === 'daily' ? point.utilization : point.cumulativeUtilization) ? `${(utilizationMode === 'daily' ? point.utilization : point.cumulativeUtilization).toFixed(1)}%` : '—'}</strong>
+              <strong>${Number.isFinite(utilizationMode === 'daily' ? point.utilization : point.cumulativeUtilization) ? `${(utilizationMode === 'daily' ? point.utilization : point.cumulativeUtilization).toFixed(1)}%` : 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â'}</strong>
             </div>
             <div class="tooltip-row">
               <span>Drilling Hr</span>
@@ -5349,6 +5720,9 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       selectedPlot = '';
       companyManpowerScopeMode = 'filtered';
       companyManpowerDesignationFilter = 'all';
+      companyAnalyticsScopeMode = 'filtered';
+      companyAnalyticsLayoutMode = 'overview';
+      companyAnalyticsDesignationFilter = 'all';
       updateUserContextUi();
       setAuthLocked(true);
       toggleRequestAccessPanel(false);
@@ -5546,6 +5920,23 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           renderCompanyManpowerPage(selectedProject);
         }));
 
+        els.companyAnalyticsDesignationSelect?.addEventListener('change', () => {
+          companyAnalyticsDesignationFilter = els.companyAnalyticsDesignationSelect.value || 'all';
+          renderCompanyAnalyticsPage(selectedProject);
+        });
+
+        els.companyAnalyticsLayoutButtons.forEach(btn => btn.addEventListener('click', () => {
+          companyAnalyticsLayoutMode = btn.dataset.companyAnalyticsLayout || 'overview';
+          els.companyAnalyticsLayoutButtons.forEach(button => button.classList.toggle('active', button === btn));
+          renderCompanyAnalyticsPage(selectedProject);
+        }));
+
+        els.companyAnalyticsScopeButtons.forEach(btn => btn.addEventListener('click', () => {
+          companyAnalyticsScopeMode = btn.dataset.companyAnalyticsScope || 'filtered';
+          els.companyAnalyticsScopeButtons.forEach(button => button.classList.toggle('active', button === btn));
+          renderCompanyAnalyticsPage(selectedProject);
+        }));
+
         els.companyManpowerExportBtn?.addEventListener('click', () => {
           updateCompanyExportProjectOptions();
           toggleCompanyExportPanel(true);
@@ -5591,6 +5982,11 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         els.timelinePreset14Btn?.addEventListener('click', () => applyTimelinePreset(14));
         els.timelinePreset30Btn?.addEventListener('click', () => applyTimelinePreset(30));
 
+        els.timelinePileSearch?.addEventListener('input', () => {
+          timelineState.pileSearch = els.timelinePileSearch.value || '';
+          updateTimelinePileList(selectedProject);
+        });
+
         els.timelineZoomInBtn?.addEventListener('click', () => {
           timelineState.zoom = Math.min(4, (timelineState.zoom || 1) * 1.2);
           renderTimelinePage(selectedProject);
@@ -5627,7 +6023,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
     initDashboard();
 
 /* ==========================================================================
-   MOBILE UI — hamburger drawer + timeline filter toggle
+   MOBILE UI ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â hamburger drawer + timeline filter toggle
    Self-contained; runs after the app initialises.
    ========================================================================== */
 (function initMobileUI() {
@@ -5672,7 +6068,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       }
     });
 
-    /* Close after a button action — but NOT for select/toggle elements
+    /* Close after a button action ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â but NOT for select/toggle elements
        so the project selector and mode toggle remain fully usable        */
     topActions.addEventListener('click', function (e) {
       const tag = e.target.tagName;

@@ -66,7 +66,8 @@
         <button class="nav-btn" data-icon="production" data-page="production"><span class="nav-icon"></span><span class="nav-label">Production</span></button>
         <button class="nav-btn" data-icon="utilization" data-page="utilization"><span class="nav-icon"></span><span class="nav-label">Utilization</span></button>
         <button class="nav-btn" data-icon="manpower" data-page="manpower"><span class="nav-icon"></span><span class="nav-label">Daily Resources</span></button>
-        <button class="nav-btn" data-icon="companymanpower" data-page="companymanpower"><span class="nav-icon"></span><span class="nav-label">Manpower</span></button>
+        <button class="nav-btn" data-icon="companymanpower" data-page="companymanpower"><span class="nav-icon"></span><span class="nav-label">Manpower Matrix</span></button>
+        <button class="nav-btn" data-icon="companyanalytics" data-page="companyanalytics"><span class="nav-icon"></span><span class="nav-label">Manpower Analytics</span></button>
         <button class="nav-btn" data-icon="timeline" data-page="timeline"><span class="nav-icon"></span><span class="nav-label">Timeline</span></button>
         <button class="nav-btn" data-icon="cost" data-page="cost"><span class="nav-icon"></span><span class="nav-label">Cost</span></button>
       </div>
@@ -84,7 +85,7 @@
       <div class="top-actions">
         <div class="chip" id="dataSourceChip">Live Data Source</div>
         <div class="mode-toggle" id="overviewDateModeToggle">
-          <button class="active" data-mode="shift" type="button">Shift 7–6:59</button>
+          <button class="active" data-mode="shift" type="button">Shift 7-6:59</button>
           <button data-mode="calendar" type="button">Calendar</button>
         </div>
         <button class="action-btn" id="refreshDashboardBtn" type="button">Refresh Dashboard</button>
@@ -418,7 +419,7 @@
             <div class="company-manpower-panel">
               <div class="panel-header company-manpower-header">
                 <div>
-                  <div class="panel-title">Company Manpower Matrix</div>
+                  <div class="panel-title">Manpower Matrix</div>
                   <div class="panel-subtitle" id="companyManpowerSubtitle">Employee comparison by designation and project</div>
                 </div>
                 <div class="company-manpower-controls">
@@ -466,6 +467,79 @@
           </div>
         </section>
 
+        <section class="page-view" id="pageCompanyAnalytics">
+          <div class="company-analytics-layout">
+            <div class="company-analytics-toolbar panel">
+              <div class="panel-header company-analytics-toolbar-head">
+                <div>
+                  <div class="panel-title">Manpower Analytics</div>
+                </div>
+                <div class="company-analytics-controls">
+                  <select class="company-manpower-select" id="companyAnalyticsDesignationSelect" aria-label="Analytics designation filter">
+                    <option value="all">All Designations</option>
+                  </select>
+                  <div class="mode-toggle company-analytics-layout-toggle" id="companyAnalyticsLayoutToggle">
+                    <button class="active" data-company-analytics-layout="overview" type="button">Overview</button>
+                    <button data-company-analytics-layout="heatmap" type="button">Heatmap</button>
+                  </div>
+                  <div class="mode-toggle company-manpower-scope-toggle" id="companyAnalyticsScopeToggle">
+                    <button class="active" data-company-analytics-scope="filtered" type="button">Current Project</button>
+                    <button data-company-analytics-scope="all" type="button">All Projects</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="company-analytics-executive-view" id="companyAnalyticsExecutiveView">
+              <section class="company-analytics-kpis" id="companyAnalyticsKpis"></section>
+
+              <div class="company-analytics-grid company-analytics-grid-executive">
+                <div class="company-analytics-panel">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">Headcount by Project</div>
+                      <div class="panel-subtitle"></div>
+                    </div>
+                    <div class="panel-tag">Nos</div>
+                  </div>
+                  <div class="company-analytics-chart-wrap" id="companyProjectBars"></div>
+                </div>
+
+                <div class="company-analytics-panel">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">Headcount by Designation</div>
+                      <div class="panel-subtitle"></div>
+                    </div>
+                    <div class="panel-tag">Nos</div>
+                  </div>
+                  <div class="company-analytics-chart-wrap" id="companyDesignationBars"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="company-analytics-heatmap-view" id="companyAnalyticsHeatmapView" hidden>
+              <div class="company-analytics-panel company-analytics-panel-wide">
+                <div class="panel-header">
+                  <div>
+                    <div class="panel-title">Project x Designation Heatmap</div>
+                    <div class="panel-subtitle">Cross-project workforce comparison by role</div>
+                  </div>
+                  <div class="panel-tag">Heatmap</div>
+                </div>
+                <div class="company-heatmap-wrap">
+                  <table class="company-heatmap-table" id="companyHeatmapTable">
+                    <thead>
+                      <tr id="companyHeatmapHead"></tr>
+                    </thead>
+                    <tbody id="companyHeatmapBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         
         <section class="page-view" id="pageTimeline">
           <div class="timeline-layout">
@@ -497,6 +571,7 @@
 
               <div class="filter-panel" style="min-height:0;">
                 <div class="filter-title">Pile Filter</div>
+                <input type="text" class="date-input timeline-pile-search" id="timelinePileSearch" placeholder="Search pile e.g. 23 or P23" />
                 <div class="timeline-pile-list" id="timelinePileList"></div>
               </div>
             </aside>
@@ -509,7 +584,7 @@
                     <div class="panel-subtitle" id="timelineSubtitle">Pile activities timeline filtered by selected period and pile</div>
                   </div>
                   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <button class="timeline-action-btn" id="timelineZoomOutBtn" type="button">−</button>
+                    <button class="timeline-action-btn" id="timelineZoomOutBtn" type="button">âˆ’</button>
                     <button class="timeline-action-btn" id="timelineZoomResetBtn" type="button">100%</button>
                     <button class="timeline-action-btn" id="timelineZoomInBtn" type="button">+</button>
                     <div class="panel-tag" id="timelineTag">All Piles</div>
