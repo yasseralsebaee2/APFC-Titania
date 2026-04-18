@@ -389,9 +389,10 @@
 
   <div class="right-controls">
     <div class="view-switcher glass-card">
-      <button class="view-btn" id="planViewBtn" type="button">2D</button>
-      <button class="view-btn active" id="view3DBtn" type="button">3D</button>
-      <button class="view-btn active" id="satBtn" type="button">SAT</button>
+      <button class="view-btn active" id="planViewBtn" type="button">2D</button>
+      <button class="view-btn" id="view3DBtn" type="button">3D</button>
+      <button class="view-btn active" id="streetBtn" type="button">Street</button>
+      <button class="view-btn" id="satBtn" type="button">Satellite</button>
     </div>
 
     <div class="visibility-card glass-card">
@@ -409,7 +410,7 @@
     <div class="chart-card-header">
       <div class="chart-title-wrap">
         <div class="chart-title">Execution Trend</div>
-        <div class="chart-subtitle">Daily executed piles from asbuilt records</div>
+        <div class="chart-subtitle"></div>
       </div>
       <button class="chart-toggle-btn" id="chartToggleBtn" type="button">Hide</button>
     </div>
@@ -860,10 +861,26 @@
       return `${y}-${m}-${d}`;
     }
 
+    function currentShiftDateKey(offsetDays = 0) {
+      const now = new Date();
+      const shiftDate = new Date(now);
+      const totalMinutes = shiftDate.getHours() * 60 + shiftDate.getMinutes();
+      if (totalMinutes < (7 * 60)) {
+        shiftDate.setDate(shiftDate.getDate() - 1);
+      }
+      if (offsetDays) {
+        shiftDate.setDate(shiftDate.getDate() + offsetDays);
+      }
+      const y = shiftDate.getFullYear();
+      const m = String(shiftDate.getMonth() + 1).padStart(2, '0');
+      const d = String(shiftDate.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
     function aggregateDailyData(rows) {
       const byDay = new Map();
       rows.filter(isExecutedRow).forEach(row => {
-        const dateKey = normalizeDateString(row.castingDate);
+        const dateKey = getExecutionDateKey(row);
         if (!dateKey) return;
         if (!byDay.has(dateKey)) byDay.set(dateKey, { date: dateKey, pileCount: 0, depth: 0, concreteQty: 0 });
         const item = byDay.get(dateKey);
@@ -876,7 +893,7 @@
       if (!sorted.length) return sorted;
 
       const startDate = new Date(sorted[0].date + 'T00:00:00');
-      const endDate = new Date(todayKey() + 'T00:00:00');
+      const endDate = new Date(currentShiftDateKey(-1) + 'T00:00:00');
       const lookup = new Map(sorted.map(d => [d.date, d]));
       const full = [];
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -924,12 +941,14 @@
     const allOpacityValue = document.getElementById('allOpacityValue');
     const planViewBtn = document.getElementById('planViewBtn');
     const view3DBtn = document.getElementById('view3DBtn');
+    const streetBtn = document.getElementById('streetBtn');
     const satBtn = document.getElementById('satBtn');
     const sidePanel = document.getElementById('sidePanel');
     const panelTitle = document.getElementById('panelTitle');
     const panelBody = document.getElementById('panelBody');
     const closePanel = document.getElementById('closePanel');
     closePanel.addEventListener('click', () => sidePanel.classList.remove('open'));
+    let initialProjectZoomApplied = false;
 
     function applyChartCollapsedState() {
       chartCard.classList.toggle('collapsed', isChartCollapsed);
@@ -1132,7 +1151,12 @@
     planViewBtn.addEventListener('click', () => setMapView('2d'));
     view3DBtn.addEventListener('click', () => setMapView('3d'));
 
-    let isSatellite = true;
+    let isSatellite = false;
+
+    function syncSatelliteButtonUi() {
+      streetBtn.classList.toggle('active', !isSatellite);
+      satBtn.classList.toggle('active', isSatellite);
+    }
 
     function normalizeMapScene() {
       try { if (map.getTerrain()) map.setTerrain(null); } catch (err) {}
@@ -1339,14 +1363,24 @@
       });
     }
 
-    satBtn.addEventListener('click', () => {
-      isSatellite = !isSatellite;
-      satBtn.classList.toggle('active', isSatellite);
-      if (isSatellite) {
-        planViewBtn.classList.remove('active');
-        view3DBtn.classList.add('active');
+    streetBtn.addEventListener('click', () => {
+      if (!isSatellite) {
+        syncSatelliteButtonUi();
+        return;
       }
-      map.setStyle(isSatellite ? SAT_STYLE_URL : BASE_STYLE_URL);
+      isSatellite = false;
+      syncSatelliteButtonUi();
+      map.setStyle(BASE_STYLE_URL);
+    });
+
+    satBtn.addEventListener('click', () => {
+      if (isSatellite) {
+        syncSatelliteButtonUi();
+        return;
+      }
+      isSatellite = true;
+      syncSatelliteButtonUi();
+      map.setStyle(SAT_STYLE_URL);
     });
 
     function makeInfoSection(title, rows) {
@@ -1423,7 +1457,7 @@
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: SAT_STYLE_URL,
+      style: BASE_STYLE_URL,
       center: SITE_CENTER,
       zoom: 18.7,
       pitch: 0,
@@ -1987,7 +2021,18 @@
       bindVisibilityControls();
       applyVisibilityCollapsedState();
       finalizeStyleLoad();
-      map.once('idle', () => focusCurrentProject(false));
+      map.once('idle', () => {
+        focusCurrentProject(false);
+        map.once('moveend', () => {
+          if (initialProjectZoomApplied) return;
+          initialProjectZoomApplied = true;
+          map.easeTo({
+            zoom: map.getZoom() + 0.18,
+            duration: 420,
+            essential: true
+          });
+        });
+      });
     }
 
     function showMapWaitingState(message = 'Waiting for dashboard context...') {
@@ -2031,6 +2076,7 @@
       map.getCanvas().style.cursor = record ? 'pointer' : '';
     });
     map.on('style.load', () => {
+      syncSatelliteButtonUi();
       finalizeStyleLoad();
     });
 
