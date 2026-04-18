@@ -4533,50 +4533,72 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       const rows = getRowsForProject(project);
       const grouped = new Map();
 
-      const getRigNameForUtilization = row => normalizeText(
-        row?.machine ||
-        row?.Machine ||
-        row?.rig ||
-        row?.Rig ||
-        row?.machine_no ||
-        row?.machineNo ||
-        row?.machineno
-      );
-
       const getDrillingHoursForUtilization = row => {
-        const direct = Number(
-          row?.asbuilt_durationdrilling ??
-          row?.asbuilt_DurationDrilling ??
-          row?.asbuilt_drillingduration ??
-          row?.durationdrilling
-        );
+        const direct = Number(row?.asbuilt_durationdrilling);
         if (Number.isFinite(direct) && direct >= 0) return direct;
-        const drillStart = getRowDate(row, ['asbuilt_drillingStart', 'asbuilt_drillingstart', 'asbuilt_DrillingStart']);
-        const drillEnd = getRowDate(row, ['asbuilt_drillingEnd', 'asbuilt_drillingend', 'asbuilt_DrillingEnd']);
+        const drillStart = getRowDate(row, ['asbuilt_drillingStart']);
+        const drillEnd = getRowDate(row, ['asbuilt_drillingEnd']);
         return hoursBetween(drillStart, drillEnd) || 0;
+      };
+
+      const getRigEntriesForUtilization = row => {
+        const primaryRig = normalizeText(row?.machine);
+        const secondaryRig = normalizeText(row?.machine2);
+        const primaryDepthRaw = Number(row?.machine1depth);
+        const secondaryDepthRaw = Number(row?.machine2depth);
+        const primaryDepth = Number.isFinite(primaryDepthRaw) && primaryDepthRaw > 0 ? primaryDepthRaw : 0;
+        const secondaryDepth = Number.isFinite(secondaryDepthRaw) && secondaryDepthRaw > 0 ? secondaryDepthRaw : 0;
+        const totalDrillingHours = getDrillingHoursForUtilization(row);
+        const splitDepthTotal = primaryDepth + secondaryDepth;
+        const entries = [];
+
+        if (primaryRig) {
+          const drilledLm = primaryDepth;
+          const drillingHours = secondaryRig && splitDepthTotal > 0
+            ? totalDrillingHours * (primaryDepth / splitDepthTotal)
+            : totalDrillingHours;
+          entries.push({
+            rig: primaryRig,
+            drilledLm,
+            drillingHours
+          });
+        }
+
+        if (secondaryRig) {
+          const drillingHours = splitDepthTotal > 0
+            ? totalDrillingHours * (secondaryDepth / splitDepthTotal)
+            : 0;
+          entries.push({
+            rig: secondaryRig,
+            drilledLm: secondaryDepth,
+            drillingHours
+          });
+        }
+
+        return entries.filter(entry => entry.rig);
       };
 
       const utilizationCandidates = rows.filter(row => {
         const dateKey = getOverviewDateKey(row);
-        const rig = getRigNameForUtilization(row);
+        const rigEntries = getRigEntriesForUtilization(row);
         const drillingHours = getDrillingHoursForUtilization(row);
         const hasExecutionFlag = row?.isExecuted === true;
-        const hasConcreteEnd = !!getRowDate(row, ['asbuilt_concreteEnd', 'asbuilt_concreteend', 'asbuilt_ConcreteEnd']);
-        return !!dateKey && !!rig && (hasExecutionFlag || hasConcreteEnd || drillingHours > 0);
+        const hasConcreteEnd = !!getRowDate(row, ['asbuilt_concreteEnd']);
+        return !!dateKey && rigEntries.length > 0 && (hasExecutionFlag || hasConcreteEnd || drillingHours > 0);
       });
 
       utilizationCandidates.forEach(row => {
         const dateKey = getOverviewDateKey(row);
-        const rig = getRigNameForUtilization(row);
-        if (!dateKey || !rig) return;
-        const drillingHours = getDrillingHoursForUtilization(row);
-        const drilledLm = Number.isFinite(Number(row?.asbuilt_depth)) ? Number(row.asbuilt_depth) : 0;
-        const key = `${dateKey}__${rig}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, { date: dateKey, rig, drillingHours: 0, drilledLm: 0, shiftHours: 12 });
-        }
-        grouped.get(key).drillingHours += drillingHours;
-        grouped.get(key).drilledLm += drilledLm;
+        const rigEntries = getRigEntriesForUtilization(row);
+        if (!dateKey || !rigEntries.length) return;
+        rigEntries.forEach(entry => {
+          const key = `${dateKey}__${entry.rig}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, { date: dateKey, rig: entry.rig, drillingHours: 0, drilledLm: 0, shiftHours: 12 });
+          }
+          grouped.get(key).drillingHours += entry.drillingHours;
+          grouped.get(key).drilledLm += entry.drilledLm;
+        });
       });
 
       return Array.from(grouped.values())
