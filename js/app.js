@@ -2140,9 +2140,12 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         const pourEnd = getRowDate(row, ['asbuilt_concreteEnd', 'asbuilt_concreteend', 'asbuilt_ConcreteEnd']);
         const id = normalizeText(row.id || row.pileId || row.PileID || row.name);
         if (!id) return null;
+        const machine = normalizeText(row.machine);
+        const machineDepthRaw = Number(row.machine1depth);
+        const machineDepth = Number.isFinite(machineDepthRaw) && machineDepthRaw > 0 ? machineDepthRaw : null;
 
         const activities = [
-          { key: 'drilling', label: 'Drilling', color: '#4ade80', start: drillStart, end: drillEnd, duration: Number(row.asbuilt_durationdrilling) || hoursBetween(drillStart, drillEnd) || 0 },
+          { key: 'drilling', label: 'Drilling', color: '#4ade80', start: drillStart, end: drillEnd, duration: Number(row.asbuilt_durationdrilling) || hoursBetween(drillStart, drillEnd) || 0, machine, machineDepth },
           { key: 'cage', label: 'Cage Installation', color: '#c4e45f', start: cageStart, end: cageEnd, duration: Number(row.asbuilt_durationcage) || hoursBetween(cageStart, cageEnd) || 0 },
           { key: 'pouring', label: 'Pouring', color: '#4b92c6', start: pourStart, end: pourEnd, duration: Number(row.asbuilt_durationconcrete) || hoursBetween(pourStart, pourEnd) || 0 }
         ].filter(a => a.start && a.end && a.end >= a.start);
@@ -2455,13 +2458,27 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       const top = 44;
       const bottom = 28;
       const laneGap = 18;
-      const laneHeight = 56;
+      const drillingMachines = Array.from(new Set(
+        rows.flatMap(row => row.activities
+          .filter(activity => activity.key === 'drilling')
+          .map(activity => normalizeText(activity.machine))
+          .filter(Boolean)
+        )
+      )).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      const drillingRowCount = Math.max(1, drillingMachines.length);
+      const drillingMachineIndex = new Map(drillingMachines.map((machine, index) => [machine, index]));
+      const baseLaneHeight = 56;
       const lanes = [
-        { key: 'drilling', label: 'Drilling', color: '#4ade80' },
-        { key: 'cage', label: 'Cage Installation', color: '#c4e45f' },
-        { key: 'pouring', label: 'Pouring', color: '#4b92c6' }
+        { key: 'drilling', label: 'Drilling', color: '#4ade80', height: drillingRowCount > 1 ? Math.max(72, 26 * drillingRowCount + 16) : baseLaneHeight },
+        { key: 'cage', label: 'Cage Installation', color: '#c4e45f', height: baseLaneHeight },
+        { key: 'pouring', label: 'Pouring', color: '#4b92c6', height: baseLaneHeight }
       ];
-      const innerH = lanes.length * laneHeight + (lanes.length - 1) * laneGap;
+      const laneTops = [];
+      lanes.reduce((cursor, lane, idx) => {
+        laneTops[idx] = cursor;
+        return cursor + lane.height + laneGap;
+      }, top);
+      const innerH = lanes.reduce((sum, lane) => sum + lane.height, 0) + (lanes.length - 1) * laneGap;
 
       let pxPerHour = 4.6;
       if (timelineState.pile === 'all' && !timelineState.start && !timelineState.end) pxPerHour = 5.8;
@@ -2486,15 +2503,31 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       wrap.style.overflowY = 'hidden';
 
       lanes.forEach((lane, idx) => {
-        const y = top + idx * (laneHeight + laneGap);
+        const y = laneTops[idx];
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', plotStartX);
-        line.setAttribute('y1', y + laneHeight / 2);
+        line.setAttribute('y1', y + lane.height / 2);
         line.setAttribute('x2', width - right);
-        line.setAttribute('y2', y + laneHeight / 2);
+        line.setAttribute('y2', y + lane.height / 2);
         line.setAttribute('stroke', 'rgba(255,255,255,0.08)');
         line.setAttribute('stroke-width', '1');
         svg.appendChild(line);
+
+        if (lane.key === 'drilling' && drillingRowCount > 1) {
+          const rowHeight = (lane.height - 16) / drillingRowCount;
+          for (let i = 1; i < drillingRowCount; i += 1) {
+            const splitY = y + 8 + rowHeight * i;
+            const splitLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            splitLine.setAttribute('x1', plotStartX);
+            splitLine.setAttribute('y1', splitY);
+            splitLine.setAttribute('x2', width - right);
+            splitLine.setAttribute('y2', splitY);
+            splitLine.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+            splitLine.setAttribute('stroke-width', '1');
+            splitLine.setAttribute('stroke-dasharray', '4 7');
+            svg.appendChild(splitLine);
+          }
+        }
       });
 
       const dayCount = Math.ceil(totalHours / 24);
@@ -2527,49 +2560,70 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       rows.forEach(pile => {
         pile.activities.forEach(activity => {
           const idx = laneIndex[activity.key];
-          const laneY = top + idx * (laneHeight + laneGap);
+          const lane = lanes[idx];
+          const laneY = laneTops[idx];
           const x = plotStartX + 8 + ((activity.start.getTime() - axisStart.getTime()) / 36e5) * pxPerHour;
           const w = Math.max(6, ((activity.end.getTime() - activity.start.getTime()) / 36e5) * pxPerHour);
-
-          const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          bar.setAttribute('x', x);
-          bar.setAttribute('y', laneY + 8);
-          bar.setAttribute('width', forceAnimate ? '0' : String(w));
-          bar.setAttribute('height', laneHeight - 16);
-          bar.setAttribute('rx', '4');
-          bar.setAttribute('fill', activity.color);
-          bar.setAttribute('opacity', '0.94');
-          bar.setAttribute('stroke', 'rgba(255,255,255,0.12)');
-          bar.setAttribute('stroke-width', '1');
-          svg.appendChild(bar);
-
           const duration = hoursBetween(activity.start, activity.end) || activity.duration || 0;
-          const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          hit.setAttribute('x', x);
-          hit.setAttribute('y', laneY + 6);
-          hit.setAttribute('width', Math.max(10, w));
-          hit.setAttribute('height', laneHeight - 12);
-          hit.setAttribute('fill', 'transparent');
-          hit.style.cursor = 'pointer';
-          const html = `<div class="tooltip-title">${pile.id} | ${activity.label}</div><div class="tooltip-row"><span>Start</span><strong>${formatDateTimeLabel(activity.start)}</strong></div><div class="tooltip-row"><span>End</span><strong>${formatDateTimeLabel(activity.end)}</strong></div><div class="tooltip-row"><span>Duration</span><strong>${formatNumberOneDecimal(duration)} hr</strong></div>`;
-          hit.addEventListener('pointerenter', evt => showTimelineTooltip(evt, html));
-          hit.addEventListener('pointermove', evt => showTimelineTooltip(evt, html));
-          hit.addEventListener('mouseleave', hideTimelineTooltip);
-          svg.appendChild(hit);
+          const drillingMachine = normalizeText(activity.machine);
+          const activitySegments = activity.key === 'drilling'
+            ? [{
+                rowIndex: drillingMachineIndex.has(drillingMachine) ? drillingMachineIndex.get(drillingMachine) : 0,
+                rowCount: drillingRowCount,
+                machine: drillingMachine,
+                depth: activity.machineDepth
+              }]
+            : [{ rowIndex: 0, rowCount: 1, machine: '', depth: null }];
+          const segmentGap = 4;
 
-          let labelObj = null;
-          if ((timelineState.pile !== 'all' || w > 56) && pile.id.length <= 8) {
-            labelObj = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            labelObj.setAttribute('x', x + w / 2);
-            labelObj.setAttribute('y', laneY + laneHeight / 2 + 4);
-            labelObj.setAttribute('class', 'timeline-bar-label');
-            labelObj.style.opacity = forceAnimate ? '0' : '1';
-            labelObj.textContent = pile.id;
-            svg.appendChild(labelObj);
-          }
-          if (forceAnimate) {
-            animatedTimelineElements.push({ bar, finalW: w, label: labelObj });
-          }
+          activitySegments.forEach(segment => {
+            const rowCount = Math.max(1, Number(segment.rowCount) || activitySegments.length || 1);
+            const rowIndex = Math.max(0, Number(segment.rowIndex) || 0);
+            const barH = Math.max(8, (lane.height - 16 - (rowCount - 1) * segmentGap) / rowCount);
+            const barY = laneY + 8 + rowIndex * (barH + segmentGap);
+
+            const bar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bar.setAttribute('x', x);
+            bar.setAttribute('y', barY);
+            bar.setAttribute('width', forceAnimate ? '0' : String(w));
+            bar.setAttribute('height', barH);
+            bar.setAttribute('rx', '4');
+            bar.setAttribute('fill', activity.color);
+            bar.setAttribute('opacity', rowCount > 1 ? '0.9' : '0.94');
+            bar.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+            bar.setAttribute('stroke-width', '1');
+            svg.appendChild(bar);
+
+            const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            hit.setAttribute('x', x);
+            hit.setAttribute('y', Math.max(laneY + 4, barY - 2));
+            hit.setAttribute('width', Math.max(10, w));
+            hit.setAttribute('height', barH + 4);
+            hit.setAttribute('fill', 'transparent');
+            hit.style.cursor = 'pointer';
+            const segmentRows = activity.key === 'drilling' && segment.machine
+              ? `<div class="tooltip-row"><span>Machine</span><strong>${escapeHtml(segment.machine)}</strong></div><div class="tooltip-row"><span>Drilled Lm</span><strong>${Number.isFinite(segment.depth) ? `${formatNumberOneDecimal(segment.depth)} m` : '-'}</strong></div>`
+              : '';
+            const html = `<div class="tooltip-title">${pile.id} | ${activity.label}</div>${segmentRows}<div class="tooltip-row"><span>Start</span><strong>${formatDateTimeLabel(activity.start)}</strong></div><div class="tooltip-row"><span>End</span><strong>${formatDateTimeLabel(activity.end)}</strong></div><div class="tooltip-row"><span>Duration</span><strong>${formatNumberOneDecimal(duration)} hr</strong></div>`;
+            hit.addEventListener('pointerenter', evt => showTimelineTooltip(evt, html));
+            hit.addEventListener('pointermove', evt => showTimelineTooltip(evt, html));
+            hit.addEventListener('mouseleave', hideTimelineTooltip);
+            svg.appendChild(hit);
+
+            let labelObj = null;
+            if ((timelineState.pile !== 'all' || w > 56) && pile.id.length <= 8) {
+              labelObj = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              labelObj.setAttribute('x', x + w / 2);
+              labelObj.setAttribute('y', barY + barH / 2 + 4);
+              labelObj.setAttribute('class', 'timeline-bar-label');
+              labelObj.style.opacity = forceAnimate ? '0' : '1';
+              labelObj.textContent = pile.id;
+              svg.appendChild(labelObj);
+            }
+            if (forceAnimate) {
+              animatedTimelineElements.push({ bar, finalW: w, label: labelObj });
+            }
+          });
         });
       });
 
@@ -2607,10 +2661,10 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       svg.appendChild(stickyBg);
 
       lanes.forEach((lane, idx) => {
-        const y = top + idx * (laneHeight + laneGap);
+        const y = laneTops[idx];
         const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         label.setAttribute('x', String(stickyPaneW - 10));
-        label.setAttribute('y', String(y + laneHeight / 2 + 4));
+        label.setAttribute('y', String(y + lane.height / 2 + 4));
         label.setAttribute('text-anchor', 'end');
         label.setAttribute('class', 'timeline-lane-label');
         label.setAttribute('data-base-x', String(stickyPaneW - 10));
@@ -4395,6 +4449,114 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       }).join('');
     }
 
+    function getCompanyAnalyticsTooltip() {
+      let tooltip = document.getElementById('companyAnalyticsTooltip');
+      if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'companyAnalyticsTooltip';
+        tooltip.className = 'chart-tooltip company-analytics-tooltip';
+        tooltip.style.position = 'fixed';
+        document.body.appendChild(tooltip);
+      }
+      return tooltip;
+    }
+
+    function showCompanyAnalyticsTooltip(evt, title, rows) {
+      const tooltip = getCompanyAnalyticsTooltip();
+      tooltip.innerHTML = `
+        <div class="tooltip-title">${escapeHtml(title)}</div>
+        ${rows.map(row => `<div class="tooltip-row"><span>${escapeHtml(row.label)}</span><strong>${escapeHtml(row.value)}</strong></div>`).join('')}
+      `;
+      tooltip.classList.add('visible');
+      const left = Math.min(window.innerWidth - 260, evt.clientX + 14);
+      const top = Math.min(window.innerHeight - 180, evt.clientY + 14);
+      tooltip.style.left = `${Math.max(8, left)}px`;
+      tooltip.style.top = `${Math.max(8, top)}px`;
+    }
+
+    function hideCompanyAnalyticsTooltip() {
+      const tooltip = document.getElementById('companyAnalyticsTooltip');
+      if (tooltip) tooltip.classList.remove('visible');
+    }
+
+    function renderCompanyAnalyticsPie(container, entries, options = {}) {
+      if (!container) return;
+      if (!entries.length) {
+        container.innerHTML = `<div class="company-analytics-empty">${escapeHtml(options.emptyLabel || 'No headcount data available.')}</div>`;
+        return;
+      }
+
+      const colors = ['#8ef0bf', '#7ab8ff', '#f5c977', '#f4a5c3', '#d5d9ff', '#9ee6e2', '#ffb3bf', '#b8f1a3'];
+      const total = entries.reduce((sum, entry) => sum + entry.value, 0);
+      const cx = 150;
+      const cy = 150;
+      const outerR = 112;
+      const innerR = 68;
+      let angle = -Math.PI / 2;
+      const slices = entries.map((entry, index) => {
+        const slice = total > 0 ? (entry.value / total) * Math.PI * 2 : 0;
+        const start = angle;
+        const end = angle + slice;
+        angle = end;
+        return { entry, index, start, end, color: colors[index % colors.length] };
+      });
+
+      const pathForSlice = slice => {
+        const largeArc = (slice.end - slice.start) > Math.PI ? 1 : 0;
+        const x1 = cx + Math.cos(slice.start) * outerR;
+        const y1 = cy + Math.sin(slice.start) * outerR;
+        const x2 = cx + Math.cos(slice.end) * outerR;
+        const y2 = cy + Math.sin(slice.end) * outerR;
+        const ix1 = cx + Math.cos(slice.end) * innerR;
+        const iy1 = cy + Math.sin(slice.end) * innerR;
+        const ix2 = cx + Math.cos(slice.start) * innerR;
+        const iy2 = cy + Math.sin(slice.start) * innerR;
+        return `M ${x1} ${y1} A ${outerR} ${outerR} 0 ${largeArc} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix2} ${iy2} Z`;
+      };
+
+      container.innerHTML = `
+        <div class="company-pie-layout">
+          <div class="company-pie-stage">
+            <svg class="company-pie-svg" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet">
+              ${slices.map(slice => `<path class="company-pie-slice" data-pie-index="${slice.index}" d="${pathForSlice(slice)}" fill="${slice.color}" stroke="rgba(9,13,18,0.92)" stroke-width="2"></path>`).join('')}
+            </svg>
+            <div class="company-pie-center">
+              <strong>${total.toLocaleString()}</strong>
+              <span>${escapeHtml(options.centerLabel || 'Staff')}</span>
+            </div>
+          </div>
+          <div class="company-pie-legend">
+            ${entries.map((entry, index) => {
+              const pct = total > 0 ? (entry.value / total) * 100 : 0;
+              return `
+                <div class="company-pie-legend-item" data-pie-index="${index}">
+                  <span class="company-pie-legend-swatch" style="background:${colors[index % colors.length]}"></span>
+                  <span>${escapeHtml(entry.label)}</span>
+                  <strong>${entry.value} (${pct.toFixed(0)}%)</strong>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      const showForIndex = (evt, index) => {
+        const entry = entries[index];
+        if (!entry) return;
+        const pct = total > 0 ? (entry.value / total) * 100 : 0;
+        showCompanyAnalyticsTooltip(evt, entry.label, [
+          { label: 'Headcount', value: `${entry.value} staff` },
+          { label: 'Share', value: `${pct.toFixed(1)}%` }
+        ]);
+      };
+
+      container.querySelectorAll('[data-pie-index]').forEach(el => {
+        const index = Number(el.getAttribute('data-pie-index'));
+        el.addEventListener('mousemove', evt => showForIndex(evt, index));
+        el.addEventListener('mouseleave', hideCompanyAnalyticsTooltip);
+      });
+    }
+
     function renderCompanyHeatmap(projectCountsByDesignation, projectOrder) {
       if (!els.companyHeatmapHead || !els.companyHeatmapBody) return;
       const designationNames = Array.from(projectCountsByDesignation.keys()).sort((a, b) => a.localeCompare(b));
@@ -4539,7 +4701,11 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
         `).join('');
       }
 
-      renderRankBars(els.companyProjectBars, projectEntries, value => `${value} staff`, 'No project headcount available.');
+      const primaryPieEntries = companyAnalyticsScopeMode === 'all' ? projectEntries : designationEntries;
+      renderCompanyAnalyticsPie(els.companyProjectBars, primaryPieEntries, {
+        centerLabel: companyAnalyticsScopeMode === 'all' ? 'Projects' : 'Roles',
+        emptyLabel: companyAnalyticsScopeMode === 'all' ? 'No project headcount available.' : 'No designation headcount available.'
+      });
       renderRankBars(els.companyDesignationBars, designationEntries, value => `${value} staff`, 'No designation headcount available.');
       renderCompanyHeatmap(projectCountsByDesignation, projectOrder);
     }
