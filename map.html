@@ -19,10 +19,13 @@
       --gold: #E8D611;
       --green: #50C878;
       --text: #272C30;
-      --glass-dark: rgba(39, 44, 48, 0.34);
-      --glass-border: rgba(255,255,255,0.12);
-      --glass-shadow: 0 10px 26px rgba(0,0,0,0.14);
-      --glass-blur: blur(12px);
+      --premium-green: #11ee89;
+      --premium-amber: #ffb02e;
+      --premium-ice: #eff6fb;
+      --glass-dark: rgba(9, 13, 17, 0.48);
+      --glass-border: rgba(255,255,255,0.16);
+      --glass-shadow: 0 18px 46px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12);
+      --glass-blur: blur(18px) saturate(1.18);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -37,7 +40,17 @@
     }
     .header img { height: 24px; width: auto; object-fit: contain; margin-right: 12px; }
     .header-title { color: #fff; font-size: 14px; font-weight: 500; letter-spacing: 0.3px; }
-    #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.97; }
+    #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.96; }
+    .map-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 54%, rgba(5,8,12,0.22) 100%),
+        linear-gradient(180deg, rgba(5,8,12,0.08) 0%, rgba(5,8,12,0) 24%, rgba(5,8,12,0.14) 100%);
+      mix-blend-mode: multiply;
+    }
     .footer {
       display: flex; align-items: center; padding-left: 14px; font-size: 12px; color: #fff;
       font-weight: 500; position: absolute; left: 0; bottom: 0; width: 100%; height: 34px;
@@ -139,15 +152,59 @@
     }
     .view-switcher {
       position: relative; right: auto; top: auto; transform: none;
-      z-index: 47; display: flex; flex-direction: column; gap: 8px; padding: 6px;
+      z-index: 47; display: flex; flex-direction: column; gap: 5px; padding: 5px;
     }
     .view-btn {
-      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.08); color: #fff;
-      border-radius: 999px; padding: 6px 10px; font-size: 10px; font-weight: 700; cursor: pointer;
-      transition: all 0.18s ease; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.16); background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.055)); color: #fff;
+      border-radius: 999px; padding: 5px 9px; font-size: 9px; font-weight: 800; cursor: pointer;
+      min-width: 48px;
+      transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
     }
-    .view-btn:hover { background: rgba(255,255,255,0.12); }
-    .view-btn.active { background: var(--gold); border-color: var(--gold); color: #000; }
+    .view-btn:hover { background: rgba(255,255,255,0.16); }
+    .view-btn.active {
+      background: linear-gradient(135deg, #fff26b 0%, #e9d80d 58%, #c8b900 100%);
+      border-color: rgba(255,242,107,0.95); color: #070907;
+      box-shadow: 0 8px 24px rgba(232,214,17,0.26), inset 0 1px 0 rgba(255,255,255,0.42);
+    }
+
+    .status-legend {
+      position: absolute;
+      right: 16px;
+      bottom: 150px;
+      z-index: 46;
+      min-width: 150px;
+      padding: 9px 11px;
+      border-radius: 15px;
+    }
+    .status-legend-title {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.92);
+      margin-bottom: 7px;
+    }
+    .status-legend-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.84);
+      margin-bottom: 5px;
+    }
+    .status-legend-row:last-child { margin-bottom: 0; }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      box-shadow: 0 0 18px currentColor;
+      flex: 0 0 10px;
+    }
+    .status-dot.executed { color: var(--premium-green); background: var(--premium-green); }
+    .status-dot.yesterday { color: var(--premium-amber); background: var(--premium-amber); }
+    .status-dot.remaining { color: rgba(239,246,251,0.74); background: rgba(239,246,251,0.74); }
 
     .visibility-card { position: relative; right: auto; top: auto; width: 220px; z-index: 46; }
     .visibility-card.compact {
@@ -165,6 +222,7 @@
     .chart-card {
       position: absolute; left: 16px; bottom: 48px; width: 365px; max-width: calc(100vw - 32px);
       z-index: 45; transition: max-height 0.22s ease; max-height: 420px;
+      display: none !important;
     }
     .chart-card.collapsed { max-height: 50px; overflow: hidden; }
     .chart-card-header {
@@ -274,7 +332,10 @@
       left: 50%;
       transform: translateX(-50%);
       text-align: center;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+      text-shadow:
+        0 1px 0 rgba(255,255,255,0.45),
+        0 0 8px rgba(255,255,255,0.58),
+        0 2px 5px rgba(0,0,0,0.18);
       font-family: Arial, sans-serif;
     }
     .pile-label-id {
@@ -283,14 +344,14 @@
       font-size: 10px;
       line-height: 1;
       font-weight: 400;
-      color: #111111;
+      color: #0f151b;
     }
     .pile-label-type {
       top: 7px;
       font-size: 10.5px;
       line-height: 1;
       font-weight: 400;
-      color: #1458ff;
+      color: #0073ff;
     }
 
     @media (max-width: 640px) {
@@ -319,6 +380,7 @@
       .chart-card { width: calc(100vw - 16px); left: 8px; bottom: calc(38px + env(safe-area-inset-bottom)); border-radius: 16px; }
 
       .tests-legend { right: 8px; bottom: calc(38px + env(safe-area-inset-bottom)); min-width: 132px; padding: 9px 10px; border-radius: 14px; }
+      .status-legend { display: none !important; }
       .tests-legend-title { font-size: 10px; margin-bottom: 6px; }
       .tests-legend-row { font-size: 9px; gap: 6px; margin-bottom: 5px; }
       .tests-legend-swatch { width: 18px; height: 18px; flex-basis: 18px; }
@@ -340,8 +402,8 @@
         bottom: auto;
         transform: translateY(-50%);
       }
-      .view-switcher { top: auto; right: auto; bottom: auto; transform: none; padding: 4px; gap: 6px; border-radius: 16px; }
-      .view-btn { min-width: 52px; padding: 7px 10px; font-size: 10px; }
+      .view-switcher { top: auto; right: auto; bottom: auto; transform: none; padding: 4px; gap: 5px; border-radius: 16px; }
+      .view-btn { min-width: 46px; padding: 6px 8px; font-size: 9px; }
       .side-panel { top: 46px; right: 8px; left: 8px; width: auto; max-width: none; max-height: calc(100% - 92px); border-radius: 18px; transform: translateY(calc(100% + 16px)); }
       .side-panel.open { transform: translateY(0); }
       .info-row { grid-template-columns: 92px 1fr; gap: 8px; padding: 8px 10px; }
@@ -360,6 +422,7 @@
 <body>
 
   <div id="map"></div>
+  <div class="map-vignette" aria-hidden="true"></div>
 
   <div class="progress-card glass-card" id="progressCard">
     <div class="progress-card-header">
@@ -397,7 +460,7 @@
 
     <div class="visibility-card glass-card">
     <div class="visibility-header" style="padding:6px; display:flex; justify-content:center;">
-      <button id="visibilityToggleBtn" type="button" class="view-btn" title="3D visibility">◐</button>
+      <button id="visibilityToggleBtn" type="button" class="view-btn" title="Pile opacity">Fade</button>
     </div>
     <div class="visibility-body">
       <div class="visibility-row"><span class="visibility-label">Pile opacity</span><span class="visibility-value" id="allOpacityValue">0.40</span></div>
@@ -406,48 +469,14 @@
   </div>
   </div>
 
-  <div class="chart-card glass-card" id="chartCard">
-    <div class="chart-card-header">
-      <div class="chart-title-wrap">
-        <div class="chart-title">Execution Trend</div>
-        <div class="chart-subtitle"></div>
-      </div>
-      <button class="chart-toggle-btn" id="chartToggleBtn" type="button">Hide</button>
-    </div>
-    <div class="chart-content" id="chartContent">
-      <div class="chart-mode-switcher">
-        <button class="chart-mode-btn active" data-mode="daily">Daily</button>
-        <button class="chart-mode-btn" data-mode="cumulative">Cumulative</button>
-      </div>
-      <div class="chart-switcher">
-        <button class="chart-btn active" data-metric="pileCount">No Of Piles</button>
-        <button class="chart-btn" data-metric="depth">Depth</button>
-        <button class="chart-btn" data-metric="concreteQty">Concrete Quantity</button>
-      </div>
-      <div class="chart-body">
-        <div class="chart-metrics">
-          <div>
-            <div class="chart-metric-label">Selected Metric</div>
-            <div class="chart-metric-value" id="chartMetricLabel">No Of Piles</div>
-          </div>
-          <div>
-            <div class="chart-metric-label">Total</div>
-            <div class="chart-metric-value" id="chartMetricTotal">0</div>
-          </div>
-        </div>
-        <div class="chart-area" id="chartArea">
-          <svg class="chart-svg" id="chartSvg" viewBox="0 0 400 210" preserveAspectRatio="none"></svg>
-          <div class="chart-tooltip" id="chartTooltip"></div>
-        </div>
-        <div class="chart-legend">
-          <span class="chart-pill"><span class="chart-dot"></span><span id="chartLegendText">No Of Piles per Day</span></span>
-          <span id="chartDateRange">No data</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="footer"><div class="footer-text">APFC | Click any pile for details</div></div>
+
+  <div class="status-legend glass-card" id="statusLegend">
+    <div class="status-legend-title">Pile Status</div>
+    <div class="status-legend-row"><span class="status-dot executed"></span><span>Executed</span></div>
+    <div class="status-legend-row"><span class="status-dot yesterday"></span><span>Last Shift</span></div>
+    <div class="status-legend-row"><span class="status-dot remaining"></span><span>Remaining</span></div>
+  </div>
 
   <div class="tests-legend glass-card" id="testsLegend">
     <div class="tests-legend-title">Pile Tests</div>
@@ -488,6 +517,26 @@
     const DISPLAY_RADIUS_SCALE = 1.35;
     const MIN_DISPLAY_RADIUS_M = 0.75;
     const DEFAULT_SITE_CENTER = [55.3145060, 25.0857920];
+    const MAP_PREMIUM = {
+      colors: {
+        executed: 0x10f28a,
+        executedEmissive: 0x06b86a,
+        yesterday: 0xffb02e,
+        yesterdayEmissive: 0xff7a18,
+        remaining: 0xf0f6fb,
+        remainingEmissive: 0x9fb6c6,
+        selected: 0xffffff
+      },
+      camera: {
+        duration: 1450,
+        quickDuration: 720,
+        easing: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+        pitch3d: 60,
+        bearing3d: 22,
+        zoomBoost2d: 0.18,
+        zoomBoost3d: 0.28
+      }
+    };
 
     let allBaseOpacity = 0.40;
     let isVisibilityCollapsed = true;
@@ -502,6 +551,9 @@
     let SITE_CENTER = DEFAULT_SITE_CENTER;
     let pileLayer = null;
     let mapContentBootstrapped = false;
+    let hoverRaf = 0;
+    let lastHoverRecordId = null;
+    let isMapInteracting = false;
 
     function normalizeText(value) {
       return String(value || '').trim();
@@ -784,11 +836,14 @@
     }
 
     function getPileColor(row, latestExecutionKey) {
-      return isYesterdayExecutedRow(row, latestExecutionKey) ? 0xFF6B2C : (isExecutedRow(row) ? 0x00E56A : 0xE8EDF3);
+      return isYesterdayExecutedRow(row, latestExecutionKey)
+        ? MAP_PREMIUM.colors.yesterday
+        : (isExecutedRow(row) ? MAP_PREMIUM.colors.executed : MAP_PREMIUM.colors.remaining);
     }
     function getBaseOpacityForRecord(record) {
-      if (record?.executed) return Math.min(0.95, allBaseOpacity + 0.20);
-      return Math.max(0.08, allBaseOpacity - 0.06);
+      if (record?.executedYesterday) return Math.min(0.98, allBaseOpacity + 0.34);
+      if (record?.executed) return Math.min(0.96, allBaseOpacity + 0.24);
+      return Math.max(0.1, allBaseOpacity - 0.08);
     }
     function getNormalOpacity(record) {
       return Math.max(0.05, getBaseOpacityForRecord(record));
@@ -951,11 +1006,12 @@
     let initialProjectZoomApplied = false;
 
     function applyChartCollapsedState() {
+      if (!chartCard || !chartContent || !chartToggleBtn) return;
       chartCard.classList.toggle('collapsed', isChartCollapsed);
       chartContent.style.display = isChartCollapsed ? 'none' : 'block';
       chartToggleBtn.textContent = isChartCollapsed ? 'Show' : 'Hide';
     }
-    chartToggleBtn.addEventListener('click', () => { isChartCollapsed = !isChartCollapsed; applyChartCollapsedState(); });
+    if (chartToggleBtn) chartToggleBtn.addEventListener('click', () => { isChartCollapsed = !isChartCollapsed; applyChartCollapsedState(); });
 
     function applyProgressCollapsedState() {
       progressCard.classList.toggle('collapsed', isProgressCollapsed);
@@ -968,9 +1024,9 @@
       visibilityBody.style.display = isVisibilityCollapsed ? 'none' : 'flex';
       const visibilityCard = document.querySelector('.visibility-card');
       visibilityCard.classList.toggle('compact', isVisibilityCollapsed);
-      visibilityToggleBtn.textContent = '◐';
+      visibilityToggleBtn.textContent = 'Fade';
       visibilityToggleBtn.classList.toggle('active', !isVisibilityCollapsed);
-      visibilityToggleBtn.title = isVisibilityCollapsed ? 'Show 3D visibility' : 'Hide 3D visibility';
+      visibilityToggleBtn.title = isVisibilityCollapsed ? 'Show pile opacity' : 'Hide pile opacity';
     }
     visibilityToggleBtn.addEventListener('click', () => { isVisibilityCollapsed = !isVisibilityCollapsed; applyVisibilityCollapsedState(); });
 
@@ -994,6 +1050,7 @@
     }
 
     function renderChart(metric = currentMetric) {
+      if (!chartSvg || !chartMetricLabel || !chartLegendText || !chartMetricTotal || !chartDateRange) return;
       currentMetric = metric;
       const series = getChartSeries(currentChartMode);
       const labelMap = { pileCount: 'No Of Piles', depth: 'Depth', concreteQty: 'Concrete Quantity' };
@@ -1109,12 +1166,14 @@
       chartTooltip.classList.add('show');
     }
 
-    chartArea.addEventListener('mousemove', (e) => {
-      const target = e.target.closest('[data-chart-index]');
-      if (!target) { chartTooltip.classList.remove('show'); return; }
-      showChartTooltip(Number(target.getAttribute('data-chart-index')), e.clientX, e.clientY);
-    });
-    chartArea.addEventListener('mouseleave', () => chartTooltip.classList.remove('show'));
+    if (chartArea) {
+      chartArea.addEventListener('mousemove', (e) => {
+        const target = e.target.closest('[data-chart-index]');
+        if (!target) { chartTooltip.classList.remove('show'); return; }
+        showChartTooltip(Number(target.getAttribute('data-chart-index')), e.clientX, e.clientY);
+      });
+      chartArea.addEventListener('mouseleave', () => chartTooltip.classList.remove('show'));
+    }
     chartButtons.forEach(btn => btn.addEventListener('click', () => renderChart(btn.dataset.metric)));
     chartModeButtons.forEach(btn => btn.addEventListener('click', () => { currentChartMode = btn.dataset.mode; renderChart(currentMetric); }));
 
@@ -1126,14 +1185,19 @@
       const focusedRecords = buildPileRecords(getFocusedPiles(scope));
       const projectBounds = getPileBounds(focusedRecords);
       const focusedCenter = getPileCentroid(focusedRecords);
+      const duration = options.instant ? 0 : (options.quick ? MAP_PREMIUM.camera.quickDuration : MAP_PREMIUM.camera.duration);
+      const easing = MAP_PREMIUM.camera.easing;
 
       if (projectBounds) {
         map.fitBounds(projectBounds, {
-          padding: { top: 40, right: 40, bottom: 40, left: 40 },
-          maxZoom: is3D ? 18.1 : 17.4,
-          pitch: is3D ? 56 : 0,
-          bearing: is3D ? 18 : 0,
-          duration: options.instant ? 0 : 900,
+          padding: is3D
+            ? { top: 72, right: 58, bottom: 86, left: 58 }
+            : { top: 54, right: 48, bottom: 54, left: 48 },
+          maxZoom: is3D ? 18.28 : 17.58,
+          pitch: is3D ? MAP_PREMIUM.camera.pitch3d : 0,
+          bearing: is3D ? MAP_PREMIUM.camera.bearing3d : 0,
+          duration,
+          easing,
           essential: true
         });
         return;
@@ -1141,10 +1205,11 @@
 
       map.easeTo({
         center: focusedCenter,
-        zoom: is3D ? 17.9 : 17.1,
-        pitch: is3D ? 56 : 0,
-        bearing: is3D ? 18 : 0,
-        duration: options.instant ? 0 : 900,
+        zoom: is3D ? 18.18 : 17.36,
+        pitch: is3D ? MAP_PREMIUM.camera.pitch3d : 0,
+        bearing: is3D ? MAP_PREMIUM.camera.bearing3d : 0,
+        duration,
+        easing,
         essential: true
       });
     }
@@ -1165,11 +1230,11 @@
     function applyLuxuryAtmosphere() {
       try {
         map.setFog({
-          'range': [0.8, 11],
-          'color': isSatellite ? '#edf1f5' : '#dbe7f4',
-          'high-color': isSatellite ? '#d7e1eb' : '#d5e3f1',
-          'horizon-blend': isSatellite ? 0.12 : 0.1,
-          'space-color': isSatellite ? '#95a5b7' : '#8aa0b9',
+          'range': isSatellite ? [0.9, 10.8] : [0.7, 10.2],
+          'color': isSatellite ? '#eef3f7' : '#e8eff6',
+          'high-color': isSatellite ? '#dfe8f1' : '#dae7f3',
+          'horizon-blend': isSatellite ? 0.18 : 0.16,
+          'space-color': '#9eafc0',
           'star-intensity': 0
         });
       } catch (err) {}
@@ -1228,7 +1293,13 @@
           filter: ['==', ['geometry-type'], 'Polygon'],
           minzoom: 10,
           paint: {
-            'fill-extrusion-color': '#ece7de',
+            'fill-extrusion-color': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10, '#eef1f3',
+              16, '#f7f2e9'
+            ],
             'fill-extrusion-height': [
               'interpolate',
               ['linear'],
@@ -1256,12 +1327,12 @@
                 0
               ]
             ],
-            'fill-extrusion-opacity': 0.88,
+            'fill-extrusion-opacity': 0.78,
             'fill-extrusion-vertical-gradient': true,
-            'fill-extrusion-emissive-strength': 0.04,
-            'fill-extrusion-ambient-occlusion-intensity': 0.34,
-            'fill-extrusion-flood-light-color': '#fffaf1',
-            'fill-extrusion-flood-light-intensity': 0.1
+            'fill-extrusion-emissive-strength': 0.02,
+            'fill-extrusion-ambient-occlusion-intensity': 0.42,
+            'fill-extrusion-flood-light-color': '#ffffff',
+            'fill-extrusion-flood-light-intensity': 0.16
           }
         }, beforeLayerId);
       } catch (err) {
@@ -1293,7 +1364,6 @@
       clearHtmlLabels();
       addLabelLayer();
       renderProgressCard();
-      renderChart(currentMetric);
       addTestRings();
       keepCustomLayersOnTop();
     }
@@ -1435,11 +1505,11 @@
         if (isSelected || isHovered) return;
         mesh.material.color.setHex(record.color);
         if (record.executed) {
-          mesh.material.emissive = new THREE.Color(record.executedYesterday ? 0xFF7A1F : 0x0A8A4A);
-          mesh.material.emissiveIntensity = record.executedYesterday ? 0.42 : 0.24;
+          mesh.material.emissive = new THREE.Color(record.executedYesterday ? MAP_PREMIUM.colors.yesterdayEmissive : MAP_PREMIUM.colors.executedEmissive);
+          mesh.material.emissiveIntensity = record.executedYesterday ? 0.62 : 0.34;
         } else {
-          mesh.material.emissive = new THREE.Color(0x000000);
-          mesh.material.emissiveIntensity = 0;
+          mesh.material.emissive = new THREE.Color(MAP_PREMIUM.colors.remainingEmissive);
+          mesh.material.emissiveIntensity = 0.03;
         }
         mesh.material.opacity = getNormalOpacity(record);
       });
@@ -1553,11 +1623,11 @@
 
         const ambient = new THREE.AmbientLight(0xffffff, 0.85);
         this.scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-        sun.position.set(80, -70, 120);
+        const sun = new THREE.DirectionalLight(0xfffbf0, 1.18);
+        sun.position.set(90, -90, 145);
         this.scene.add(sun);
-        const fill = new THREE.DirectionalLight(0xfff2c2, 0.35);
-        fill.position.set(-50, 50, 90);
+        const fill = new THREE.DirectionalLight(0xdcecff, 0.42);
+        fill.position.set(-70, 55, 105);
         this.scene.add(fill);
 
         this.renderer = new THREE.WebGLRenderer({
@@ -1590,8 +1660,8 @@
             color: record.color,
             transparent: true,
             opacity: getNormalOpacity(record),
-            shininess: 110,
-            specular: 0x8a8a8a,
+            shininess: 145,
+            specular: 0xcfd7df,
             flatShading: false,
             side: THREE.DoubleSide,
             depthTest: false,
@@ -1632,22 +1702,23 @@
       }
 
       setHighlightedPile(recordId) {
+        if (this.highlightedId === recordId) return;
         this.highlightedId = recordId;
         this.meshes.forEach(mesh => {
           const record = mesh.userData.record;
           const isSelected = record.id === recordId;
           const isExecuted = record.executed;
           if (isSelected) {
-            const selectedColor = isExecuted ? (record.executedYesterday ? 0xFF9A67 : 0x2AF58E) : 0xE6EBF0;
-            const emissiveColor = isExecuted ? (record.executedYesterday ? 0xFF7A1F : 0x0BAA58) : 0x9FB6C6;
+            const selectedColor = isExecuted ? (record.executedYesterday ? 0xffc162 : 0x38ff9d) : MAP_PREMIUM.colors.selected;
+            const emissiveColor = isExecuted ? (record.executedYesterday ? MAP_PREMIUM.colors.yesterdayEmissive : MAP_PREMIUM.colors.executedEmissive) : MAP_PREMIUM.colors.remainingEmissive;
             mesh.material.color.setHex(selectedColor);
             mesh.material.emissive = new THREE.Color(emissiveColor);
-            mesh.material.emissiveIntensity = 0.82;
-            mesh.material.opacity = 0.85;
+            mesh.material.emissiveIntensity = record.executedYesterday ? 1.0 : 0.88;
+            mesh.material.opacity = 0.92;
           } else {
             mesh.material.color.setHex(record.color);
-            mesh.material.emissive = new THREE.Color(0x000000);
-            mesh.material.emissiveIntensity = 0;
+            mesh.material.emissive = new THREE.Color(record.executedYesterday ? MAP_PREMIUM.colors.yesterdayEmissive : (record.executed ? MAP_PREMIUM.colors.executedEmissive : MAP_PREMIUM.colors.remainingEmissive));
+            mesh.material.emissiveIntensity = record.executedYesterday ? 0.62 : (record.executed ? 0.34 : 0.03);
             mesh.material.opacity = getNormalOpacity(record);
           }
         });
@@ -1655,6 +1726,7 @@
       }
 
       setHoverPile(recordId) {
+        if (this.hoveredId === recordId) return;
         this.hoveredId = recordId;
         this.meshes.forEach(mesh => {
           const record = mesh.userData.record;
@@ -1662,16 +1734,16 @@
           const isHovered = record.id === recordId && !isSelected;
           if (isSelected) return;
           if (isHovered) {
-            const hoverColor = record.executed ? (record.executedYesterday ? 0xFF8A52 : 0x23EB84) : 0xEEF2F6;
-            const hoverEmissive = record.executed ? (record.executedYesterday ? 0xFF7418 : 0x0F9F57) : 0xAFC3D1;
+            const hoverColor = record.executed ? (record.executedYesterday ? 0xffc162 : 0x36ff9c) : 0xffffff;
+            const hoverEmissive = record.executed ? (record.executedYesterday ? MAP_PREMIUM.colors.yesterdayEmissive : MAP_PREMIUM.colors.executedEmissive) : MAP_PREMIUM.colors.remainingEmissive;
             mesh.material.color.setHex(hoverColor);
             mesh.material.emissive = new THREE.Color(hoverEmissive);
-            mesh.material.emissiveIntensity = record.executedYesterday ? 0.58 : 0.44;
-            mesh.material.opacity = Math.min(0.85, getNormalOpacity(record) + 0.18);
+            mesh.material.emissiveIntensity = record.executedYesterday ? 0.86 : 0.58;
+            mesh.material.opacity = Math.min(0.94, getNormalOpacity(record) + 0.2);
           } else {
             mesh.material.color.setHex(record.color);
-            mesh.material.emissive = new THREE.Color(0x000000);
-            mesh.material.emissiveIntensity = 0;
+            mesh.material.emissive = new THREE.Color(record.executedYesterday ? MAP_PREMIUM.colors.yesterdayEmissive : (record.executed ? MAP_PREMIUM.colors.executedEmissive : MAP_PREMIUM.colors.remainingEmissive));
+            mesh.material.emissiveIntensity = record.executedYesterday ? 0.62 : (record.executed ? 0.34 : 0.03);
             mesh.material.opacity = getNormalOpacity(record);
           }
         });
@@ -1730,7 +1802,6 @@
         this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert();
         this.renderer.resetState();
         this.renderer.render(this.scene, this.camera);
-        this.map.triggerRepaint();
       }
     }
 
@@ -1861,10 +1932,12 @@
         geometry.setIndex(indices);
         geometry.computeVertexNormals();
 
-        const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
-          color: 0xe7d39b,
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
+          color: 0xf2eee6,
           transparent: true,
-          opacity: 0.96,
+          opacity: 0.86,
+          shininess: 95,
+          specular: 0xffffff,
           side: THREE.DoubleSide,
           depthTest: false,
           depthWrite: false
@@ -1872,22 +1945,6 @@
         mesh.frustumCulled = false;
         mesh.renderOrder = 990;
         this.scene.add(mesh);
-
-        const debugHeight = 28;
-        const debugGeometry = new THREE.CylinderGeometry(2.8, 2.8, debugHeight, 28, 1, false);
-        debugGeometry.rotateX(Math.PI / 2);
-        const debugMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff2d55,
-          transparent: true,
-          opacity: 0.98,
-          depthTest: false,
-          depthWrite: false
-        });
-        const debugMesh = new THREE.Mesh(debugGeometry, debugMaterial);
-        debugMesh.position.set(0, 0, (debugHeight / 2) + BUILDING_BASE_Z_M);
-        debugMesh.frustumCulled = false;
-        debugMesh.renderOrder = 991;
-        this.scene.add(debugMesh);
 
         this._built = true;
         this._stats = { features: usedFeatureCount, triangles: Math.floor(indices.length / 3) };
@@ -1922,7 +1979,6 @@
         this.renderer.clearDepth();
         this.renderer.resetState();
         this.renderer.render(this.scene, this.camera);
-        this.map.triggerRepaint();
       }
     }
 
@@ -1967,6 +2023,7 @@
 
     function addLabelLayer() {
       clearHtmlLabels();
+      if (isMapInteracting) return;
       pileRecords.forEach(record => {
         const wrap = document.createElement('div');
         wrap.className = 'pile-label-marker';
@@ -2070,10 +2127,43 @@
       openPilePanel(record);
     });
 
+    map.on('dragstart', () => {
+      isMapInteracting = true;
+      if (pileLayer) pileLayer.setHoverPile(null);
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('rotatestart', () => {
+      isMapInteracting = true;
+      if (pileLayer) pileLayer.setHoverPile(null);
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('pitchstart', () => {
+      isMapInteracting = true;
+      if (pileLayer) pileLayer.setHoverPile(null);
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('moveend', () => {
+      isMapInteracting = false;
+    });
     map.on('mousemove', e => {
-      const record = getPileRecordFromInteraction(e.point, 30);
-      if (pileLayer) pileLayer.setHoverPile(record ? record.id : null);
-      map.getCanvas().style.cursor = record ? 'pointer' : '';
+      if (isMapInteracting) return;
+      if (hoverRaf) return;
+      const point = { x: e.point.x, y: e.point.y };
+      hoverRaf = requestAnimationFrame(() => {
+        hoverRaf = 0;
+        if (isMapInteracting) return;
+        const record = getPileRecordFromInteraction(point, 26);
+        const nextId = record ? record.id : null;
+        if (nextId === lastHoverRecordId) return;
+        lastHoverRecordId = nextId;
+        if (pileLayer) pileLayer.setHoverPile(nextId);
+        map.getCanvas().style.cursor = record ? 'pointer' : '';
+      });
+    });
+    map.on('mouseleave', () => {
+      lastHoverRecordId = null;
+      if (pileLayer) pileLayer.setHoverPile(null);
+      map.getCanvas().style.cursor = '';
     });
     map.on('style.load', () => {
       syncSatelliteButtonUi();
