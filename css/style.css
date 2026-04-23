@@ -5109,7 +5109,7 @@ body.auth-locked .auth-shell {
   box-shadow: inset 0 0 0 999px rgba(142,240,191,0.08);
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 767px) {
   .company-analytics-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
