@@ -3725,6 +3725,51 @@ body.auth-locked .auth-shell {
   z-index: 1;
 }
 
+.company-heatmap-project-head {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+.company-heatmap-project-head span {
+  color: rgba(244,247,251,0.88);
+}
+
+.company-heatmap-project-head strong {
+  color: #8ef0bf;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.company-heatmap-table th.company-heatmap-selected-project,
+.company-heatmap-table td.company-heatmap-selected-project {
+  border-left: 1px dashed rgba(142,240,191,0.68);
+  border-right: 1px dashed rgba(142,240,191,0.68);
+  box-shadow: inset 0 0 0 999px rgba(142,240,191,0.035);
+}
+
+.company-heatmap-table th.company-heatmap-selected-project {
+  box-shadow:
+    inset 0 1px 0 rgba(142,240,191,0.45),
+    inset 0 0 0 999px rgba(142,240,191,0.07);
+}
+
+.company-heatmap-expand-all {
+  min-width: 104px;
+  padding: 9px 14px;
+  border-color: rgba(142,240,191,0.28);
+  color: #8ef0bf;
+}
+
+.company-manpower-scope-toggle button.scope-disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
 .company-heatmap-table th:first-child,
 .company-heatmap-table td:first-child {
   text-align: left;

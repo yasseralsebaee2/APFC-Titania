@@ -132,6 +132,7 @@
       companyDesignationBars: document.getElementById('companyDesignationBars'),
       companyHeatmapHead: document.getElementById('companyHeatmapHead'),
       companyHeatmapBody: document.getElementById('companyHeatmapBody'),
+      companyHeatmapExpandAllBtn: document.getElementById('companyHeatmapExpandAllBtn'),
       companyShiftDonut: document.getElementById('companyShiftDonut'),
       companyShiftDonutTotal: document.getElementById('companyShiftDonutTotal'),
       companyShiftLegend: document.getElementById('companyShiftLegend'),
@@ -401,6 +402,31 @@
         .filter(item => normalizeText(item.status).toLowerCase() === 'active')
         .filter(item => getCompanyProjectToken(item.projectRaw || item.project) === targetProjectToken)
         .length;
+    }
+
+    function getActiveDailyReportRigNamesByDate(project = selectedProject) {
+      const targetProjectToken = getCompanyProjectToken(project || selectedProject || DEFAULT_PROJECT);
+      const normalizedSelectedPlot = normalizeText(selectedPlot);
+      const byDate = new Map();
+
+      dailyReportEquipmentRows
+        .map(sanitizeDailyReportEquipmentRow)
+        .filter(item => normalizeText(item.type).toLowerCase() === 'rig')
+        .filter(item => getCompanyProjectToken(item.projectRaw || item.project) === targetProjectToken)
+        .filter(item => {
+          if (isAllPlotsValue(normalizedSelectedPlot)) return true;
+          const rowPlot = normalizeText(item.plot);
+          return rowPlot === normalizedSelectedPlot || isAllPlotsValue(rowPlot);
+        })
+        .forEach(item => {
+          const dateKey = normalizeDateString(item.date);
+          const rig = normalizeText(item.label);
+          if (!dateKey || !rig) return;
+          if (!byDate.has(dateKey)) byDate.set(dateKey, new Set());
+          byDate.get(dateKey).add(rig);
+        });
+
+      return byDate;
     }
 
     function getScopeLabel() {
@@ -4601,7 +4627,11 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
     function renderCompanyHeatmap(projectCountsByDesignation, projectOrder, subCountsByDesignation) {
       if (!els.companyHeatmapHead || !els.companyHeatmapBody) return;
+      const selectedProjectToken = getCompanyProjectToken(selectedProject || DEFAULT_PROJECT);
       const getDesignationTotal = name => projectOrder.reduce((sum, project) => sum + (projectCountsByDesignation.get(name)?.get(project) || 0), 0);
+      const getProjectTotal = project => Array.from(projectCountsByDesignation.keys()).reduce((sum, designation) => (
+        sum + (projectCountsByDesignation.get(designation)?.get(project) || 0)
+      ), 0);
       const getSubDesignationTotal = (name, subName) => projectOrder.reduce((sum, project) => (
         sum + (subCountsByDesignation.get(name)?.get(subName)?.get(project) || 0)
       ), 0);
@@ -4614,12 +4644,32 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
       els.companyHeatmapHead.innerHTML = [
         `<th><span class="company-heatmap-designation-cell"><span>Designation</span><strong>${grandTotal}</strong></span></th>`,
-        ...projectOrder.map(project => `<th>${escapeHtml(project)}</th>`)
+        ...projectOrder.map(project => {
+          const isSelectedProject = getCompanyProjectToken(project) === selectedProjectToken;
+          return `
+            <th class="${isSelectedProject ? 'company-heatmap-selected-project' : ''}">
+              <span class="company-heatmap-project-head">
+                <span>${escapeHtml(project)}</span>
+                <strong>${getProjectTotal(project)} Staff</strong>
+              </span>
+            </th>
+          `;
+        })
       ].join('');
 
       if (!designationNames.length || !projectOrder.length) {
         els.companyHeatmapBody.innerHTML = '<tr><td colspan="2" class="manpower-empty">No manpower heatmap data available.</td></tr>';
+        if (els.companyHeatmapExpandAllBtn) {
+          els.companyHeatmapExpandAllBtn.hidden = true;
+        }
         return;
+      }
+
+      const expandableDesignations = designationNames.filter(name => (subCountsByDesignation.get(name) || new Map()).size > 0);
+      const allExpanded = expandableDesignations.length > 0 && expandableDesignations.every(name => companyHeatmapExpandedDesignations.has(name));
+      if (els.companyHeatmapExpandAllBtn) {
+        els.companyHeatmapExpandAllBtn.hidden = expandableDesignations.length === 0;
+        els.companyHeatmapExpandAllBtn.textContent = allExpanded ? 'Collapse All' : 'Expand All';
       }
 
       els.companyHeatmapBody.innerHTML = designationNames.map(name => {
@@ -4633,7 +4683,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           const value = projectCountsByDesignation.get(name)?.get(project) || 0;
           const alpha = value <= 0 ? 0.04 : (0.12 + (value / maxValue) * 0.62);
           const color = `rgba(142,240,191,${alpha.toFixed(3)})`;
-          return `<td style="background:${color};">${value > 0 ? value : '-'}</td>`;
+          const isSelectedProject = getCompanyProjectToken(project) === selectedProjectToken;
+          return `<td class="${isSelectedProject ? 'company-heatmap-selected-project' : ''}" style="background:${color};">${value > 0 ? value : '-'}</td>`;
         }).join('');
         const parentRow = `
           <tr class="company-heatmap-parent-row">
@@ -4656,7 +4707,8 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
             const value = subMap.get(subName)?.get(project) || 0;
             const alpha = value <= 0 ? 0.035 : (0.08 + (value / maxValue) * 0.38);
             const color = `rgba(122,184,255,${alpha.toFixed(3)})`;
-            return `<td class="company-heatmap-sub-cell" style="background:${color};">${value > 0 ? value : '-'}</td>`;
+            const isSelectedProject = getCompanyProjectToken(project) === selectedProjectToken;
+            return `<td class="company-heatmap-sub-cell ${isSelectedProject ? 'company-heatmap-selected-project' : ''}" style="background:${color};">${value > 0 ? value : '-'}</td>`;
           }).join('');
           return `
             <tr class="company-heatmap-sub-row">
@@ -4746,6 +4798,9 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
     }
 
     function renderCompanyAnalyticsPage(project = selectedProject) {
+      if (companyAnalyticsLayoutMode === 'heatmap') {
+        companyAnalyticsScopeMode = 'all';
+      }
       const items = getAnalyticsCompanyEmployees(project);
       const totalHeadcount = items.length;
       const projectCounts = buildCountMap(items, item => item.project);
@@ -4777,6 +4832,14 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
       }
       els.companyAnalyticsLayoutButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.companyAnalyticsLayout === companyAnalyticsLayoutMode));
       els.companyAnalyticsScopeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.companyAnalyticsScope === companyAnalyticsScopeMode));
+      els.companyAnalyticsScopeButtons.forEach(btn => {
+        const isHeatmap = companyAnalyticsLayoutMode === 'heatmap';
+        const isAllButton = btn.dataset.companyAnalyticsScope === 'all';
+        btn.disabled = isHeatmap && !isAllButton;
+        btn.hidden = isHeatmap && !isAllButton;
+        btn.style.display = isHeatmap && !isAllButton ? 'none' : '';
+        btn.classList.toggle('scope-disabled', isHeatmap && !isAllButton);
+      });
 
       if (els.companyAnalyticsExecutiveView) {
         els.companyAnalyticsExecutiveView.hidden = companyAnalyticsLayoutMode !== 'overview';
@@ -4994,7 +5057,11 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
     }
 
     function getUtilizationRigColors(rigKeys) {
-      const palette = ['#8ef0bf', '#7bb6ff', '#f0d58e', '#f5a6b8', '#c7b8ff', '#7fe7f0'];
+      const palette = [
+        '#8ef0bf', '#7bb6ff', '#f0d58e', '#f5a6b8', '#c7b8ff', '#7fe7f0',
+        '#ffb86c', '#a7f3d0', '#93c5fd', '#fca5a5', '#d9f99d', '#f0abfc',
+        '#67e8f9', '#fde68a', '#c4b5fd', '#86efac', '#bfdbfe', '#fda4af'
+      ];
       return rigKeys.reduce((acc, rig, idx) => {
         acc[rig] = palette[idx % palette.length];
         return acc;
@@ -5004,6 +5071,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
     function getUtilizationRows(project) {
       const rows = getRowsForProject(project);
       const grouped = new Map();
+      const reportRigsByDate = getActiveDailyReportRigNamesByDate(project);
 
       const getDrillingHoursForUtilization = row => {
         const direct = Number(row?.asbuilt_durationdrilling);
@@ -5070,6 +5138,26 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
           }
           grouped.get(key).drillingHours += entry.drillingHours;
           grouped.get(key).drilledLm += entry.drilledLm;
+        });
+      });
+
+      const utilizationDates = Array.from(new Set([
+        ...Array.from(grouped.values()).map(item => item.date).filter(Boolean),
+        ...Array.from(reportRigsByDate.keys())
+      ])).sort();
+
+      utilizationDates.forEach(dateKey => {
+        const reportRigs = Array.from(reportRigsByDate.get(dateKey) || []).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        reportRigs.forEach(rig => {
+          const key = `${dateKey}__${rig}`;
+          if (grouped.has(key)) return;
+          grouped.set(key, {
+            date: dateKey,
+            rig,
+            drillingHours: 0,
+            drilledLm: 0,
+            shiftHours: 12
+          });
         });
       });
 
@@ -5954,6 +6042,19 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
               utilLabel.textContent = `${utilValue.toFixed(0)}%`;
               utilLabel.style.pointerEvents = 'none';
               svg.appendChild(utilLabel);
+            } else if (Number.isFinite(utilValue)) {
+              const zeroMark = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              zeroMark.setAttribute('x', String(x));
+              zeroMark.setAttribute('y', String(topArea.y2 - 3));
+              zeroMark.setAttribute('width', String(barW));
+              zeroMark.setAttribute('height', '3');
+              zeroMark.setAttribute('rx', '2');
+              zeroMark.setAttribute('fill', item.color);
+              zeroMark.setAttribute('fill-opacity', '0.38');
+              zeroMark.style.cursor = 'pointer';
+              zeroMark.addEventListener('mousemove', evt => showTooltip(evt, point.date, pointsForIndex(idx), baseX));
+              zeroMark.addEventListener('mouseleave', hideTooltip);
+              svg.appendChild(zeroMark);
             }
 
             const lmValue = point.drilledLm;
@@ -5984,6 +6085,19 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
               lmLabel.textContent = `${Math.round(lmValue)}m`;
               lmLabel.style.pointerEvents = 'none';
               svg.appendChild(lmLabel);
+            } else if (Number.isFinite(lmValue)) {
+              const zeroLmMark = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              zeroLmMark.setAttribute('x', String(x));
+              zeroLmMark.setAttribute('y', String(bottomArea.y2 - 3));
+              zeroLmMark.setAttribute('width', String(barW));
+              zeroLmMark.setAttribute('height', '3');
+              zeroLmMark.setAttribute('rx', '2');
+              zeroLmMark.setAttribute('fill', item.color);
+              zeroLmMark.setAttribute('fill-opacity', '0.28');
+              zeroLmMark.style.cursor = 'pointer';
+              zeroLmMark.addEventListener('mousemove', evt => showTooltip(evt, point.date, pointsForIndex(idx), baseX));
+              zeroLmMark.addEventListener('mouseleave', hideTooltip);
+              svg.appendChild(zeroLmMark);
             }
           });
         });
@@ -6309,6 +6423,7 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
             if (activePage === 'utilization') renderUtilizationPage(selectedProject);
             if (activePage === 'manpower') renderManpowerPage(selectedProject);
             if (activePage === 'companymanpower') renderCompanyManpowerPage(selectedProject);
+            if (activePage === 'companyanalytics') renderCompanyAnalyticsPage(selectedProject);
             if (activePage === 'timeline') renderTimelinePage(selectedProject, true);
             if (activePage === 'cost') renderCostPage(selectedProject, true);
             broadcastAuthContext();
@@ -6422,15 +6537,39 @@ function renderProductionMetricChart(project, key, forceAnimate = false) {
 
         els.companyAnalyticsLayoutButtons.forEach(btn => btn.addEventListener('click', () => {
           companyAnalyticsLayoutMode = btn.dataset.companyAnalyticsLayout || 'overview';
+          if (companyAnalyticsLayoutMode === 'heatmap') {
+            companyAnalyticsScopeMode = 'all';
+          }
           els.companyAnalyticsLayoutButtons.forEach(button => button.classList.toggle('active', button === btn));
           renderCompanyAnalyticsPage(selectedProject);
         }));
 
         els.companyAnalyticsScopeButtons.forEach(btn => btn.addEventListener('click', () => {
+          if (companyAnalyticsLayoutMode === 'heatmap' && btn.dataset.companyAnalyticsScope !== 'all') return;
           companyAnalyticsScopeMode = btn.dataset.companyAnalyticsScope || 'filtered';
           els.companyAnalyticsScopeButtons.forEach(button => button.classList.toggle('active', button === btn));
           renderCompanyAnalyticsPage(selectedProject);
         }));
+
+        els.companyHeatmapExpandAllBtn?.addEventListener('click', () => {
+          const employees = getAnalyticsCompanyEmployees(selectedProject);
+          const subMapByDesignation = new Map();
+          employees.forEach(item => {
+            if (!item.designation) return;
+            if (!subMapByDesignation.has(item.designation)) subMapByDesignation.set(item.designation, new Set());
+            subMapByDesignation.get(item.designation).add(item.subDesignation || item.designation);
+          });
+          const expandableDesignations = Array.from(subMapByDesignation.entries())
+            .filter(([, subSet]) => subSet.size > 0)
+            .map(([designation]) => designation);
+          const allExpanded = expandableDesignations.length > 0 && expandableDesignations.every(name => companyHeatmapExpandedDesignations.has(name));
+          if (allExpanded) {
+            companyHeatmapExpandedDesignations.clear();
+          } else {
+            expandableDesignations.forEach(name => companyHeatmapExpandedDesignations.add(name));
+          }
+          renderCompanyAnalyticsPage(selectedProject);
+        });
 
         els.companyManpowerExportBtn?.addEventListener('click', () => {
           updateCompanyExportProjectOptions();
